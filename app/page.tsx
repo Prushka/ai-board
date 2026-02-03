@@ -571,7 +571,7 @@ export default function TranslatorApp() {
                             <div className="h-8 flex items-center justify-between gap-2">
                                 {mode === 'translator' ? (
                                     <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                        <SelectTrigger className="h-8 w-fit min-w-[140px] px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer">
+                                        <SelectTrigger className="h-8 w-fit min-w-35 px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer">
                                             <span className="text-muted-foreground whitespace-nowrap">To:</span>
                                             <SelectValue />
                                         </SelectTrigger>
@@ -606,6 +606,7 @@ export default function TranslatorApp() {
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
                                     "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 md:min-h-90 overflow-y-auto flex-1 transition-colors duration-200",
+                                    mode === 'polisher' ? "md:text-sm" : "",
                                     isLoading ? "opacity-70 bg-muted/30" : ""
                                 )}>
                                     {!translatedText && (
