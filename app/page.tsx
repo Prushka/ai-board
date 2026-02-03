@@ -416,16 +416,16 @@ export default function TranslatorApp() {
         }
     }, [mode, handleTranslate, handlePolish])
 
-    // Auto-translate debounce
+    // Trigger translation when target language changes
+    const prevTargetLanguage = React.useRef(targetLanguage)
     React.useEffect(() => {
-        const timer = setTimeout(() => {
-            if (inputText.trim()) {
+        if (prevTargetLanguage.current !== targetLanguage) {
+            if (mode === 'translator' && inputText.trim()) {
                 handleAction()
             }
-        }, 2000)
-
-        return () => clearTimeout(timer)
-    }, [inputText, handleAction])
+            prevTargetLanguage.current = targetLanguage
+        }
+    }, [targetLanguage, mode, inputText, handleAction])
 
     const copyToClipboard = () => {
         if (!translatedText) return
@@ -564,6 +564,11 @@ export default function TranslatorApp() {
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 onPaste={handlePaste}
+                                onBlur={() => {
+                                    if (mode === 'translator' && inputText.trim()) {
+                                        handleAction()
+                                    }
+                                }}
                             />
                         </div>
 
