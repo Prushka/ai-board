@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withOpenAIClient } from "@/lib/openai-client";
 
 export async function POST(req: Request) {
-  const { text, targetLanguage, model, previousLanguage } = await req.json();
+  const { text, targetLanguage, model, previousLanguage, endpoint } = await req.json();
 
   if (!text || !targetLanguage || !model) {
     return NextResponse.json(
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
         temperature: 0.3,
       });
       return completion.choices[0].message.content;
-    }, model); // Scope is the model name
+    }, model, endpoint); // Scope is the model name
 
     // Parse the JSON string from OpenAI
     const parsedData = JSON.parse(responseData || "{}");

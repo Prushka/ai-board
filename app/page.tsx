@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor} from "lucide-react";
+import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
 import {Textarea} from "@/components/ui/textarea";
+import { SettingsDialog } from "@/components/settings-dialog";
 import {
     Select,
     SelectContent,
@@ -30,11 +32,22 @@ const LANGUAGES = [
 type AppMode = 'translator' | 'polisher'
 
 export default function TranslatorApp() {
+    const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
+
     const [mode, setMode] = React.useState<AppMode>('translator')
     const [models, setModels] = React.useState<{ id: string }[]>([])
     const [selectedModel, setSelectedModel] = React.useState<string>("")
     const [targetLanguage, setTargetLanguage] = React.useState<string>(LANGUAGES[0])
     const [languageHistory, setLanguageHistory] = React.useState<string[]>([])
+
+    // Settings state
+    const [isSettingsOpen, setIsSettingsOpen] = React.useState(false)
+    const [selectedEndpoint, setSelectedEndpoint] = React.useState<string>("default")
 
     const [contents, setContents] = React.useState<Record<AppMode, {
         input: string;
@@ -107,33 +120,75 @@ export default function TranslatorApp() {
         setLanguageHistory(currentHistory)
     }, [])
 
+    // Load endpoint from local storage and validate against available endpoints
     React.useEffect(() => {
-        // Fetch models on mount
-        const fetchModels = async () => {
+        const initEndpoints = async () => {
             try {
-                const res = await fetch("/api/models")
+                const res = await fetch("/api/endpoints")
+                if (res.ok) {
+                    const availableEndpoints: { id: string }[] = await res.json()
+                    if (availableEndpoints.length > 0) {
+                        const savedEndpoint = localStorage.getItem("selectedEndpoint")
+                        const isValidSaved = savedEndpoint && availableEndpoints.some(e => e.id === savedEndpoint)
+
+                        // If no saved endpoint or saved one is invalid, use the first available one
+                        if (!isValidSaved) {
+                            const firstId = availableEndpoints[0].id
+                            setSelectedEndpoint(firstId)
+                            localStorage.setItem("selectedEndpoint", firstId)
+                        } else {
+                            // If we have a valid saved endpoint, ensure state matches (it might be 'default' initially)
+                            if (savedEndpoint) setSelectedEndpoint(savedEndpoint)
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to fetch endpoints for initialization", e)
+            }
+        }
+
+        initEndpoints()
+    }, [])
+
+    React.useEffect(() => {
+        // Fetch models when endpoint changes
+        const fetchModels = async () => {
+            setModels([]) // Clear models while loading
+            setSelectedModel("") // Reset selection
+            try {
+                const res = await fetch(`/api/models?endpoint=${selectedEndpoint}`)
                 if (res.ok) {
                     const data = await res.json()
-                    const modelList = data.data || data
+                    const modelList = data.data || (Array.isArray(data) ? data : [])
+                    const defaultModel = data.defaultModel
+
                     if (Array.isArray(modelList)) {
                         setModels(modelList)
 
-                        // Check local storage for saved model
-                        const savedModel = localStorage.getItem("selectedModel")
+                        // Check local storage for saved model (per endpoint? maybe just global for now)
+                        const savedModel = localStorage.getItem(`selectedModel-${selectedEndpoint}`) || localStorage.getItem("selectedModel")
                         const foundSaved = modelList.find((m: { id: string }) => m.id === savedModel)
 
                         if (foundSaved) {
                             setSelectedModel(foundSaved.id)
                         } else {
-                            // Auto-select gpt-4o-mini or gpt-3.5-turbo if available, else first
-                            const preferred = modelList.find((m: {
-                                id: string
-                            }) => m.id.includes("gpt-4o")) || modelList.find((m: {
-                                id: string
-                            }) => m.id.includes("gpt-3.5")) || modelList[0]
+                            // Priority: Configured Default -> gpt-4o -> gpt-3.5 -> first available
+                            let preferred = null;
+                            if (defaultModel) {
+                                preferred = modelList.find((m: { id: string }) => m.id.includes(defaultModel));
+                            }
+
+                            if (!preferred) {
+                                preferred = modelList.find((m: {
+                                    id: string
+                                }) => m.id.includes("gpt-4o")) || modelList.find((m: {
+                                    id: string
+                                }) => m.id.includes("gpt-3.5")) || modelList[0]
+                            }
+
                             if (preferred) {
                                 setSelectedModel(preferred.id)
-                                localStorage.setItem("selectedModel", preferred.id)
+                                // We don't save immediately to avoid overwriting user pref if they switch back
                             }
                         }
                     }
@@ -143,11 +198,17 @@ export default function TranslatorApp() {
             }
         }
         fetchModels()
-    }, [])
+    }, [selectedEndpoint])
 
     const handleModelChange = (value: string) => {
         setSelectedModel(value)
         localStorage.setItem("selectedModel", value)
+        localStorage.setItem(`selectedModel-${selectedEndpoint}`, value)
+    }
+
+    const handleEndpointChange = (value: string) => {
+        setSelectedEndpoint(value)
+        localStorage.setItem("selectedEndpoint", value)
     }
 
     const handleLanguageChange = (value: string) => {
@@ -170,7 +231,8 @@ export default function TranslatorApp() {
             text: inputText,
             targetLanguage,
             model: selectedModel,
-            previousLanguage
+            previousLanguage,
+            endpoint: selectedEndpoint
         }
 
         // Avoid re-translating if parameters haven't changed since last success
@@ -179,7 +241,8 @@ export default function TranslatorApp() {
             lastParams.text === currentParams.text &&
             lastParams.targetLanguage === currentParams.targetLanguage &&
             lastParams.model === currentParams.model &&
-            lastParams.previousLanguage === currentParams.previousLanguage
+            lastParams.previousLanguage === currentParams.previousLanguage &&
+            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint
         ) {
             return
         }
@@ -222,7 +285,7 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, targetLanguage, selectedModel, languageHistory, previousLanguage, mode])
+    }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint])
 
     const handlePolish = React.useCallback(async (force: boolean = false) => {
         if (!inputText.trim() || !selectedModel) return
@@ -231,12 +294,14 @@ export default function TranslatorApp() {
             mode: 'polisher' as AppMode,
             text: inputText,
             model: selectedModel,
+            endpoint: selectedEndpoint
         }
 
         const lastParams = lastTranslatedParamsRef.current.polisher
         if (!force && mode === 'polisher' && lastParams &&
             lastParams.text === currentParams.text &&
-            lastParams.model === currentParams.model
+            lastParams.model === currentParams.model &&
+            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint
         ) {
             return
         }
@@ -274,7 +339,7 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, selectedModel, mode])
+    }, [inputText, selectedModel, mode, selectedEndpoint])
 
     // Unified handler
     const handleAction = React.useCallback((force: boolean = false) => {
@@ -303,6 +368,8 @@ export default function TranslatorApp() {
         setTimeout(() => setIsCopied(false), 2000)
     }
 
+    if (!mounted) return null
+
     return (
         <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start md:justify-center p-3 pt-10 md:p-8">
             <motion.div
@@ -311,9 +378,37 @@ export default function TranslatorApp() {
                 transition={{duration: 0.5}}
                 className="w-full max-w-4xl space-y-4 md:space-y-6"
             >
-                {/* Mode Switch */}
-                <div className="flex justify-center">
-                    <div className="bg-muted p-1 rounded-lg flex gap-1 relative">
+                {/* Mode Switch & Settings */}
+                <div className="flex justify-center items-center relative">
+                    {/* Theme Switcher (Desktop) */}
+                    <div className="hidden md:flex w-auto justify-start md:absolute md:left-0">
+                        <div className="bg-muted/50 p-0.5 rounded-lg flex gap-0.5 relative">
+                            {(['system', 'light', 'dark'] as const).map((t) => (
+                                <button
+                                    key={t}
+                                    onClick={() => setTheme(t)}
+                                    className={cn(
+                                        "relative p-1.5 rounded-md transition-colors z-10 cursor-pointer flex items-center justify-center",
+                                        theme === t ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
+                                    )}
+                                    title={t.charAt(0).toUpperCase() + t.slice(1)}
+                                >
+                                    {theme === t && (
+                                        <motion.div
+                                            layoutId="active-theme"
+                                            className="absolute inset-0 bg-background shadow-sm rounded-md -z-10"
+                                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                        />
+                                    )}
+                                    {t === 'system' && <Monitor className="w-3.5 h-3.5" />}
+                                    {t === 'light' && <Sun className="w-3.5 h-3.5" />}
+                                    {t === 'dark' && <Moon className="w-3.5 h-3.5" />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-muted p-1 rounded-lg flex gap-1 relative shadow-sm">
                         {(['translator', 'polisher'] as AppMode[]).map((m) => (
                             <button
                                 key={m}
@@ -335,6 +430,17 @@ export default function TranslatorApp() {
                             </button>
                         ))}
                     </div>
+
+                    <div className="hidden md:flex w-auto justify-end md:absolute md:right-0">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            onClick={() => setIsSettingsOpen(true)}
+                        >
+                            <Settings className="w-5 h-5"/>
+                        </Button>
+                    </div>
                 </div>
 
                 <Card className="w-full shadow-md md:shadow-lg border-muted/40 overflow-hidden">
@@ -344,7 +450,7 @@ export default function TranslatorApp() {
                             <Globe className="h-4 w-4 text-muted-foreground shrink-0"/>
                             <span className="text-sm font-medium hidden md:inline">Model:</span>
                             <Select value={selectedModel} onValueChange={handleModelChange}>
-                                <SelectTrigger className="w-full md:w-50 h-9 md:h-10 bg-background/50 cursor-pointer">
+                                <SelectTrigger className="w-full md:w-72 h-9 md:h-10 bg-background/50 cursor-pointer">
                                     <SelectValue placeholder="Select a model"/>
                                 </SelectTrigger>
                                 <SelectContent>
@@ -409,18 +515,20 @@ export default function TranslatorApp() {
                                         </span>
                                     )}
                                 </label>
-                                {translatedText && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
-                                        onClick={copyToClipboard}
-                                        title="Copy to clipboard"
-                                    >
-                                        {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
-                                            <Copy className="h-4 w-4"/>}
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                        "h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
+                                        translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
+                                    )}
+                                    onClick={copyToClipboard}
+                                    title="Copy to clipboard"
+                                    disabled={!translatedText}
+                                >
+                                    {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
+                                        <Copy className="h-4 w-4"/>}
+                                </Button>
                             </div>
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
@@ -465,7 +573,7 @@ export default function TranslatorApp() {
                     </CardContent>
                     <CardFooter className="flex justify-center p-4 md:p-8 pt-2 md:pt-2">
                         <Button
-                            className="w-full md:w-auto min-w-[160px] h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                            className="w-full md:w-auto min-w-40 h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                             onClick={() => handleAction(true)}
                             disabled={isLoading || !inputText.trim() || !selectedModel}
                         >
@@ -482,7 +590,51 @@ export default function TranslatorApp() {
                         </Button>
                     </CardFooter>
                 </Card>
+
+                {/* Mobile Theme & Settings */}
+                <div className="flex md:hidden justify-between items-center w-full px-1">
+                    <div className="bg-muted/50 p-0.5 rounded-lg flex gap-0.5 relative">
+                        {(['system', 'light', 'dark'] as const).map((t) => (
+                            <button
+                                key={t}
+                                onClick={() => setTheme(t)}
+                                className={cn(
+                                    "relative p-1.5 rounded-md transition-colors z-10 cursor-pointer flex items-center justify-center",
+                                    theme === t ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
+                                )}
+                                title={t.charAt(0).toUpperCase() + t.slice(1)}
+                            >
+                                {theme === t && (
+                                    <motion.div
+                                        layoutId="active-theme-mobile"
+                                        className="absolute inset-0 bg-background shadow-sm rounded-md -z-10"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                {t === 'system' && <Monitor className="w-3.5 h-3.5" />}
+                                {t === 'light' && <Sun className="w-3.5 h-3.5" />}
+                                {t === 'dark' && <Moon className="w-3.5 h-3.5" />}
+                            </button>
+                        ))}
+                    </div>
+
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                        onClick={() => setIsSettingsOpen(true)}
+                    >
+                        <Settings className="w-5 h-5"/>
+                    </Button>
+                </div>
             </motion.div>
+
+            <SettingsDialog
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                selectedEndpoint={selectedEndpoint}
+                onEndpointChange={handleEndpointChange}
+            />
         </div>
     )
 }
