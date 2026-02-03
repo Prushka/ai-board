@@ -4,6 +4,12 @@ import { withOpenAIClient } from "@/lib/openai-client";
 export async function POST(req: Request) {
   const { text, targetLanguage, model, previousLanguage, endpoint, isFastMode } = await req.json();
 
+  console.log("Translate Request:", {
+    text: text?.substring(0, 100) + (text?.length > 100 ? "..." : ""),
+    isFastMode,
+    model
+  });
+
   if (!text || !targetLanguage || !model) {
     return NextResponse.json(
       { error: "Missing required fields: text, targetLanguage, model" },

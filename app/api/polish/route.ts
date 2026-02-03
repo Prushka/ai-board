@@ -4,6 +4,12 @@ import { withOpenAIClient } from "@/lib/openai-client";
 export async function POST(req: Request) {
   const { text, model, endpoint, isFastMode } = await req.json();
 
+  console.log("Polish Request:", {
+    text: text?.substring(0, 100) + (text?.length > 100 ? "..." : ""),
+    isFastMode,
+    model
+  });
+
   if (!text || !model) {
     return NextResponse.json(
       { error: "Missing required fields: text, model" },
