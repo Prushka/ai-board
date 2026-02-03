@@ -66,7 +66,7 @@ export async function POST(req: Request) {
           },
         ],
         temperature: 0.3,
-        ...(isFastMode ? { reasoning_effort: "low" } : {}),
+        ...(isFastMode ? { reasoning_effort: "minimal" } : {}),
       });
       return completion.choices[0].message.content;
     }, model, endpoint); // Scope is the model name
