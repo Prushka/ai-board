@@ -36,13 +36,11 @@ export async function POST(req: Request) {
       - Split the translated text into meaningful tokens (words for whitespace languages, characters or compound words for CJK).
       - "pronunciation":
         - For Chinese: Use Pinyin with tone marks.
-        - For Japanese: Use Romaji or Furigana logic (hiragana reading).
+        - For Japanese: ALWAYS use Romaji (Latin script). Do NOT use Hiragana or Katakana.
         - For Korean: Use Revised Romanization.
-        - For Russian: Use Latin transliteration.
-        - For Kazakh: Use Latin transliteration.
-        - For Turkish: Use IPA or simple phonetic transcription.
-        - For others (e.g. English, French, Spanish): Use IPA or standard simple phonetic transcription IF the pronunciation is not obvious from the text. If the target language uses Latin script and pronunciation is standard, you can leave it empty or provide helpful stress guidelines.
-        - If punctuation, leave pronunciation empty.
+        - For Russian/Kazakh: Use Latin transliteration.
+        - For others: Use standard simple phonetic transcription (Latin script) if the pronunciation is not obvious.
+        - If punctuation or space, leave pronunciation empty.
       `;
 
       const completion = await openai.chat.completions.create({
@@ -67,10 +65,11 @@ export async function POST(req: Request) {
     const parsedData = JSON.parse(responseData || "{}");
 
     return NextResponse.json(parsedData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error translating text:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to translate text";
     return NextResponse.json(
-      { error: error.message || "Failed to translate text" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
