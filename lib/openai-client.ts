@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { getEndpoint } from "@/lib/endpoints";
 
-const BLOCK_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const BLOCK_DURATION = 6 * 60 * 60 * 1000; // 6 hours
 
 // Use globalThis to persist state across hot reloads in development
 const globalState = globalThis as unknown as {
@@ -75,7 +75,7 @@ export async function withOpenAIClient<T>(
         const shouldSwitch = status === 401 || status === 429 || status === 403 || isQuotaError;
 
         if (shouldSwitch) {
-            console.warn(`Blocking API key ending in ...${apiKey.slice(-4)} for scope '${scope}' for 24 hours`);
+            console.warn(`Blocking API key ending in ...${apiKey.slice(-4)} for scope '${scope}' for 6 hours`);
             globalState._failedApiKeys.set(`${apiKey}::${scope}`, Date.now());
             // If we have more keys, continue to the next one
             if (availableKeys.indexOf(apiKey) < availableKeys.length - 1) {
