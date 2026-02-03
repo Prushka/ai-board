@@ -437,7 +437,7 @@ export default function TranslatorApp() {
     if (!mounted) return null
 
     return (
-        <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start md:justify-center p-3 pt-10 md:p-8">
+        <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start md:justify-center p-1 pt-6 md:p-8 md:pt-10">
             <motion.div
                 initial={{opacity: 0, y: 20}}
                 animate={{opacity: 1, y: 0}}
