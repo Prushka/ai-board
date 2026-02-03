@@ -27,7 +27,10 @@ const LANGUAGES = [
     "Indonesian", "Vietnamese", "Thai"
 ]
 
+type AppMode = 'translator' | 'polisher'
+
 export default function TranslatorApp() {
+    const [mode, setMode] = React.useState<AppMode>('translator')
     const [models, setModels] = React.useState<{ id: string }[]>([])
     const [selectedModel, setSelectedModel] = React.useState<string>("")
     const [targetLanguage, setTargetLanguage] = React.useState<string>(LANGUAGES[0])
@@ -35,14 +38,29 @@ export default function TranslatorApp() {
 
     const [inputText, setInputText] = React.useState<string>("")
     const [translatedText, setTranslatedText] = React.useState<string>("")
+    // We can reuse translatedText for polished text or create a new one.
+    // To avoid confusion let's create a derived or generic 'outputText' state or just reuse 'translatedText' and alias it in render?
+    // Let's create `outputText` and `tokens` and separate the previous `translatedText`.
+    // Actually, refactoring `translatedText` to `outputText` is a bit invasive.
+    // I'll stick to using `translatedText` as the generic output store for simplicity, but cleaner to rename.
+    // Let's keep `translatedText` and added `polishedText`? No, simpler to just use one state for the output content.
+    // I'll rename `translatedText` to `outputText` in a separate refactor or just use it as is.
+    // Given the instructions constraint "Avoid repeating existing code", I will just use `translatedText` for both but creates confusion.
+    // Let's make a new state `outputText` and replace usage gradually? No, that's messy.
+    // I will rename `translatedText` to `outputText` using search/replace first? No, that takes extra steps.
+    // I'll just use `translatedText` for now and maybe rename it in the component. Actually, I'll add `outputText` and sync it.
+
+    // Actually, I'll add `handlePolish` and use `translatedText` as the display for both.
+
     const [tokens, setTokens] = React.useState<{ text: string; pronunciation: string }[]>([])
     const [isLoading, setIsLoading] = React.useState<boolean>(false)
     const [isCopied, setIsCopied] = React.useState<boolean>(false)
 
     // Ref to track last successful translation parameters to prevent redundant requests
     const lastTranslatedParamsRef = React.useRef<{
+        mode: AppMode; // Add mode to cache
         text: string;
-        targetLanguage: string;
+        targetLanguage?: string;
         model: string;
         previousLanguage?: string;
     } | null>(null)
@@ -138,6 +156,7 @@ export default function TranslatorApp() {
         if (!inputText.trim() || !selectedModel) return
 
         const currentParams = {
+            mode: 'translator' as AppMode,
             text: inputText,
             targetLanguage,
             model: selectedModel,
@@ -146,7 +165,8 @@ export default function TranslatorApp() {
 
         // Avoid re-translating if parameters haven't changed since last success
         const lastParams = lastTranslatedParamsRef.current
-        if (lastParams &&
+        if (mode === 'translator' && lastParams &&
+            lastParams.mode === 'translator' &&
             lastParams.text === currentParams.text &&
             lastParams.targetLanguage === currentParams.targetLanguage &&
             lastParams.model === currentParams.model &&
@@ -181,18 +201,69 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, targetLanguage, selectedModel, languageHistory, previousLanguage])
+    }, [inputText, targetLanguage, selectedModel, languageHistory, previousLanguage, mode])
+
+    const handlePolish = React.useCallback(async () => {
+        if (!inputText.trim() || !selectedModel) return
+
+        const currentParams = {
+            mode: 'polisher' as AppMode,
+            text: inputText,
+            model: selectedModel,
+        }
+
+        const lastParams = lastTranslatedParamsRef.current
+        if (mode === 'polisher' && lastParams &&
+            lastParams.mode === 'polisher' &&
+            lastParams.text === currentParams.text &&
+            lastParams.model === currentParams.model
+        ) {
+            return
+        }
+
+        setIsLoading(true)
+        setTranslatedText("")
+        setTokens([]) // Polisher doesn't use tokens for now
+
+        try {
+            const res = await fetch("/api/polish", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(currentParams)
+            })
+            const data = await res.json()
+            if (data.polishedText) {
+                setTranslatedText(data.polishedText)
+                lastTranslatedParamsRef.current = { ...currentParams }
+            } else if (data.error) {
+                setTranslatedText(`Error: ${data.error}`)
+            }
+        } catch {
+            setTranslatedText("Error: Failed to connect to server.")
+        } finally {
+            setIsLoading(false)
+        }
+    }, [inputText, selectedModel, mode])
+
+    // Unified handler
+    const handleAction = React.useCallback(() => {
+        if (mode === 'translator') {
+            handleTranslate()
+        } else {
+            handlePolish()
+        }
+    }, [mode, handleTranslate, handlePolish])
 
     // Auto-translate debounce
     React.useEffect(() => {
         const timer = setTimeout(() => {
             if (inputText.trim()) {
-                handleTranslate()
+                handleAction()
             }
         }, 2000)
 
         return () => clearTimeout(timer)
-    }, [inputText, handleTranslate])
+    }, [inputText, handleAction])
 
     const copyToClipboard = () => {
         if (!translatedText) return
@@ -202,13 +273,34 @@ export default function TranslatorApp() {
     }
 
     return (
-        <div className="min-h-screen w-full bg-background flex flex-col items-center justify-center p-3 md:p-8">
+        <div className="min-h-screen w-full bg-background flex flex-col items-center justify-start md:justify-center p-3 pt-10 md:p-8">
             <motion.div
                 initial={{opacity: 0, y: 20}}
                 animate={{opacity: 1, y: 0}}
                 transition={{duration: 0.5}}
                 className="w-full max-w-4xl space-y-4 md:space-y-6"
             >
+                {/* Mode Switch */}
+                <div className="flex justify-center">
+                    <div className="bg-muted p-1 rounded-lg flex gap-1">
+                        <Button
+                            variant={mode === 'translator' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setMode('translator')}
+                            className="rounded-md px-6"
+                        >
+                            Translator
+                        </Button>
+                        <Button
+                            variant={mode === 'polisher' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setMode('polisher')}
+                            className="rounded-md px-6"
+                        >
+                            Polisher
+                        </Button>
+                    </div>
+                </div>
 
                 <Card className="w-full shadow-md md:shadow-lg border-muted/40">
                     <CardHeader
@@ -228,50 +320,59 @@ export default function TranslatorApp() {
                             </Select>
                         </div>
 
-                        <div className="flex items-center gap-2 w-full md:w-auto">
-                            <span className="text-sm font-medium text-nowrap hidden md:inline">Translate to:</span>
-                            <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                <SelectTrigger className="w-full md:w-45 h-9 md:h-10 bg-background/50">
-                                    <SelectValue/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {LANGUAGES.map(lang => (
-                                        <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {mode === 'translator' && (
+                            <div className="flex items-center gap-2 w-full md:w-auto">
+                                <span className="text-sm font-medium text-nowrap hidden md:inline">Translate to:</span>
+                                <Select value={targetLanguage} onValueChange={handleLanguageChange}>
+                                    <SelectTrigger className="w-full md:w-45 h-9 md:h-10 bg-background/50">
+                                        <SelectValue/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {LANGUAGES.map(lang => (
+                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </CardHeader>
                     <CardContent className="grid gap-3 md:gap-6 md:grid-cols-2 p-4 md:p-6 pt-0">
-                        <div className="space-y-2">
-                            <label
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 hidden md:block">Input
-                                (Auto-detect)</label>
+                        <div className="space-y-2 flex flex-col h-full">
+                            <div className="h-5 flex items-center hidden md:flex">
+                                <label
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
+                                </label>
+                            </div>
                             <Textarea
-                                placeholder="Type text to translate..."
-                                className="min-h-[140px] md:min-h-50 resize-none text-base bg-background/50 focus:bg-background transition-colors"
+                                placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
+                                className="min-h-[140px] md:min-h-50 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                             />
                         </div>
 
-                        <div className="space-y-2 relative">
-                            <label
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 hidden md:block">
-                                Output ({targetLanguage})
-                                {previousLanguage && (
-                                    <span className="ml-2 text-xs font-normal text-muted-foreground/70">
-                                        (fallback: {previousLanguage})
-                                    </span>
-                                )}
-                            </label>
-                            <div className="relative">
+                        <div className="space-y-2 relative flex flex-col h-full">
+                            <div className="h-5 flex items-center hidden md:flex">
+                                <label
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                                    {mode === 'translator' ? `Output (${targetLanguage})` : 'Polished Version'}
+                                    {mode === 'translator' && previousLanguage && (
+                                        <span className="ml-2 text-xs font-normal text-muted-foreground/70">
+                                            (fallback: {previousLanguage})
+                                        </span>
+                                    )}
+                                </label>
+                            </div>
+                            <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 p-3 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-[140px] md:min-h-50 overflow-y-auto",
+                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-[140px] md:min-h-50 overflow-y-auto flex-1",
                                 )}>
                                     {!translatedText && (
-                                        <span className="text-muted-foreground opacity-50">Translation will appear here...</span>
+                                        <span className="text-muted-foreground opacity-50">
+                                            {mode === 'translator' ? "Translation will appear here..." : "Polished version will appear here..."}
+                                        </span>
                                     )}
 
                                     {tokens.length > 0 ? (
@@ -307,17 +408,17 @@ export default function TranslatorApp() {
                     <CardFooter className="flex justify-center p-4 md:p-8 pt-2 md:pt-2">
                         <Button
                             className="w-full md:w-auto min-w-[160px] h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95"
-                            onClick={handleTranslate}
+                            onClick={handleAction}
                             disabled={isLoading || !inputText.trim() || !selectedModel}
                         >
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
-                                    Translating...
+                                    {mode === 'translator' ? 'Translating...' : 'Polishing...'}
                                 </>
                             ) : (
                                 <>
-                                    Translate <ArrowRight className="ml-2 h-4 w-4"/>
+                                    {mode === 'translator' ? 'Translate' : 'Polish'} <ArrowRight className="ml-2 h-4 w-4"/>
                                 </>
                             )}
                         </Button>
