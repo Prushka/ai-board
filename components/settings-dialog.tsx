@@ -1,8 +1,15 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Server } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 interface Endpoint {
     id: string;
@@ -14,9 +21,20 @@ interface SettingsDialogProps {
     onClose: () => void;
     selectedEndpoint: string;
     onEndpointChange: (id: string) => void;
+    models: { id: string }[];
+    selectedModel: string;
+    onModelChange: (id: string) => void;
 }
 
-export function SettingsDialog({ isOpen, onClose, selectedEndpoint, onEndpointChange }: SettingsDialogProps) {
+export function SettingsDialog({
+   isOpen,
+   onClose,
+   selectedEndpoint,
+   onEndpointChange,
+   models,
+   selectedModel,
+   onModelChange
+}: SettingsDialogProps) {
     const [endpoints, setEndpoints] = React.useState<Endpoint[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -106,6 +124,21 @@ export function SettingsDialog({ isOpen, onClose, selectedEndpoint, onEndpointCh
                                         )}
                                     </div>
                                 )}
+                            </div>
+
+                            <div className="space-y-3 pt-2 border-t border-border/50">
+                                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Model</h3>
+                                <Select value={selectedModel} onValueChange={onModelChange}>
+                                    <SelectTrigger className="w-full bg-background/50 cursor-pointer">
+                                        <SelectValue placeholder="Select a model"/>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {models.length > 0 ? models.map((model) => (
+                                            <SelectItem key={model.id} value={model.id}
+                                                        className="cursor-pointer">{model.id}</SelectItem>
+                                        )) : <SelectItem value="loading" disabled>Loading models...</SelectItem>}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import {Card, CardContent, CardFooter, CardHeader} from "@/components/ui/card";
+import {Card, CardContent, CardFooter} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const LANGUAGES = [
@@ -437,7 +437,7 @@ export default function TranslatorApp() {
     if (!mounted) return null
 
     return (
-        <div className="h-[100dvh] w-full bg-background flex flex-col items-center justify-start md:justify-center p-1 pt-4 pb-4 md:p-8 overflow-y-auto overscroll-none">
+        <div className="h-dvh w-full bg-background flex flex-col items-center justify-start md:justify-center p-1 pt-4 pb-4 md:p-8 overflow-y-auto overscroll-none">
             <motion.div
                 initial={{opacity: 0, y: 20}}
                 animate={{opacity: 1, y: 0}}
@@ -510,53 +510,12 @@ export default function TranslatorApp() {
                 </div>
 
                 <Card className="w-full shadow-md md:shadow-lg border-muted/40 overflow-hidden">
-                    <CardHeader
-                        className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between space-y-0 p-4 md:p-6 pb-2 md:pb-6 bg-muted/10">
-                        <div className="flex items-center gap-2 w-full md:w-auto">
-                            <Globe className="h-4 w-4 text-muted-foreground shrink-0"/>
-                            <span className="text-sm font-medium hidden md:inline">Model:</span>
-                            <Select value={selectedModel} onValueChange={handleModelChange}>
-                                <SelectTrigger className="w-full md:w-72 h-9 md:h-10 bg-background/50 cursor-pointer">
-                                    <SelectValue placeholder="Select a model"/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {models.length > 0 ? models.map((model) => (
-                                        <SelectItem key={model.id} value={model.id} className="cursor-pointer">{model.id}</SelectItem>
-                                    )) : <SelectItem value="loading" disabled>Loading models...</SelectItem>}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <AnimatePresence mode="popLayout">
-                            {mode === 'translator' && (
-                                <motion.div
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="flex items-center gap-2 w-full md:w-auto"
-                                >
-                                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden"/>
-                                    <span className="text-sm font-medium text-nowrap hidden md:inline">Translate to:</span>
-                                    <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                        <SelectTrigger className="w-full md:w-45 h-9 md:h-10 bg-background/50 cursor-pointer">
-                                            <SelectValue/>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {LANGUAGES.map(lang => (
-                                                <SelectItem key={lang} value={lang} className="cursor-pointer">{lang}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </CardHeader>
 
                     <CardContent className="grid gap-3 md:gap-6 md:grid-cols-2 p-4 md:p-6 pt-3 relative">
                          {/* Animated overlay for loading state if desired, or just opacity on content */}
 
                         <div className="space-y-2 flex flex-col h-full">
-                            <div className="h-5 flex items-center justify-between">
+                            <div className="h-8 flex items-center justify-between">
                                 <label
                                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground">
                                     {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
@@ -609,16 +568,25 @@ export default function TranslatorApp() {
                         </div>
 
                         <div className="space-y-2 relative flex flex-col h-full">
-                            <div className="min-h-5 flex items-center justify-between gap-2">
-                                <label
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis text-muted-foreground">
-                                    {mode === 'translator' ? `Output (${targetLanguage})` : 'Polished Version'}
-                                    {mode === 'translator' && previousLanguage && (
-                                        <span className="ml-2 text-xs font-normal text-muted-foreground/50">
-                                            (fallback: {previousLanguage})
-                                        </span>
-                                    )}
-                                </label>
+                            <div className="h-8 flex items-center justify-between gap-2">
+                                {mode === 'translator' ? (
+                                    <Select value={targetLanguage} onValueChange={handleLanguageChange}>
+                                        <SelectTrigger className="h-8 w-fit min-w-[140px] px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2">
+                                            <span className="text-muted-foreground whitespace-nowrap">To:</span>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {LANGUAGES.map(lang => (
+                                                <SelectItem key={lang} value={lang} className="cursor-pointer">{lang}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <label
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis text-muted-foreground">
+                                        Polished Version
+                                    </label>
+                                )}
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -738,6 +706,9 @@ export default function TranslatorApp() {
                 onClose={() => setIsSettingsOpen(false)}
                 selectedEndpoint={selectedEndpoint}
                 onEndpointChange={handleEndpointChange}
+                models={models}
+                selectedModel={selectedModel}
+                onModelChange={handleModelChange}
             />
         </div>
     )
