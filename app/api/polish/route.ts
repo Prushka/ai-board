@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withOpenAIClient } from "@/lib/openai-client";
 
 export async function POST(req: Request) {
-  const { text, model, endpoint } = await req.json();
+  const { text, model, endpoint, isFastMode } = await req.json();
 
   if (!text || !model) {
     return NextResponse.json(
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
           },
         ],
         temperature: 0.3,
+        ...(isFastMode ? { reasoning_effort: "low" } : {}),
       });
       return completion.choices[0].message.content;
     }, model, endpoint);

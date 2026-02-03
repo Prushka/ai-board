@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -74,6 +74,7 @@ export default function TranslatorApp() {
     const [selectedModel, setSelectedModel] = React.useState<string>("")
     const [targetLanguage, setTargetLanguage] = React.useState<string>(LANGUAGES[0])
     const [languageHistory, setLanguageHistory] = React.useState<string[]>([])
+    const [isFastMode, setIsFastMode] = React.useState(true)
 
     // Settings state
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(false)
@@ -197,6 +198,11 @@ export default function TranslatorApp() {
     React.useEffect(() => {
         const savedLang = localStorage.getItem("targetLanguage")
         const savedHistory = localStorage.getItem("languageHistory")
+        const savedFastMode = localStorage.getItem("fastMode")
+
+        if (savedFastMode !== null) {
+            setIsFastMode(savedFastMode === "true")
+        }
 
         const effectiveLang = savedLang || LANGUAGES[0]
         if (savedLang) setTargetLanguage(savedLang)
@@ -302,6 +308,12 @@ export default function TranslatorApp() {
         localStorage.setItem(`selectedModel-${selectedEndpoint}`, value)
     }
 
+    const toggleFastMode = () => {
+        const newValue = !isFastMode
+        setIsFastMode(newValue)
+        localStorage.setItem("fastMode", String(newValue))
+    }
+
     const handleEndpointChange = (value: string) => {
         setSelectedEndpoint(value)
         localStorage.setItem("selectedEndpoint", value)
@@ -329,7 +341,8 @@ export default function TranslatorApp() {
             targetLanguage,
             model: selectedModel,
             previousLanguage,
-            endpoint: selectedEndpoint
+            endpoint: selectedEndpoint,
+            isFastMode
         }
 
         // Avoid re-translating if parameters haven't changed since last success
@@ -339,7 +352,8 @@ export default function TranslatorApp() {
             lastParams.targetLanguage === currentParams.targetLanguage &&
             lastParams.model === currentParams.model &&
             lastParams.previousLanguage === currentParams.previousLanguage &&
-            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint
+            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint &&
+            (lastParams as { isFastMode?: boolean }).isFastMode === currentParams.isFastMode
         ) {
             return
         }
@@ -391,14 +405,16 @@ export default function TranslatorApp() {
             mode: 'polisher' as AppMode,
             text: inputText,
             model: selectedModel,
-            endpoint: selectedEndpoint
+            endpoint: selectedEndpoint,
+            isFastMode
         }
 
         const lastParams = lastTranslatedParamsRef.current.polisher
         if (!force && mode === 'polisher' && lastParams &&
             lastParams.text === currentParams.text &&
             lastParams.model === currentParams.model &&
-            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint
+            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint &&
+            (lastParams as { isFastMode?: boolean }).isFastMode === currentParams.isFastMode
         ) {
             return
         }
@@ -716,7 +732,18 @@ export default function TranslatorApp() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex justify-center p-4 md:p-8 pt-2 md:pt-2">
+                    <CardFooter className="flex justify-center gap-3 p-4 md:p-8 pt-2 md:pt-2">
+                        <Button
+                            variant={isFastMode ? "default" : "outline"}
+                            className={cn(
+                                "h-10 w-10 md:h-11 md:w-11 min-w-[2.5rem] md:min-w-[2.75rem] p-0 font-semibold shadow-sm transition-all active:scale-95 cursor-pointer rounded-md shrink-0",
+                                isFastMode ? "hover:shadow-md" : "text-muted-foreground hover:bg-muted/50 border-input hover:text-foreground"
+                            )}
+                            onClick={toggleFastMode}
+                            title={isFastMode ? "Fast mode enabled (Minimum thinking level)" : "Fast mode disabled (Enable for faster results)"}
+                        >
+                            <Zap className={cn("w-5 h-5", isFastMode ? "fill-current" : "")} />
+                        </Button>
                         <Button
                             className="w-full md:w-auto min-w-40 h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                             onClick={() => handleAction(true)}
