@@ -396,7 +396,7 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint])
+    }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint, isFastMode])
 
     const handlePolish = React.useCallback(async (force: boolean = false) => {
         if (!inputText.trim() || !selectedModel) return
@@ -452,7 +452,7 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, selectedModel, mode, selectedEndpoint])
+    }, [inputText, selectedModel, mode, selectedEndpoint, isFastMode])
 
     // Unified handler
     const handleAction = React.useCallback((force: boolean = false, overrideText?: string) => {
@@ -736,7 +736,7 @@ export default function TranslatorApp() {
                         <Button
                             variant={isFastMode ? "default" : "outline"}
                             className={cn(
-                                "h-10 w-10 md:h-11 md:w-11 min-w-[2.5rem] md:min-w-[2.75rem] p-0 font-semibold shadow-sm transition-all active:scale-95 cursor-pointer rounded-md shrink-0",
+                                "h-10 w-10 md:h-11 md:w-11 min-w-10 md:min-w-11 p-0 font-semibold shadow-sm transition-all active:scale-95 cursor-pointer rounded-md shrink-0",
                                 isFastMode ? "hover:shadow-md" : "text-muted-foreground hover:bg-muted/50 border-input hover:text-foreground"
                             )}
                             onClick={toggleFastMode}
