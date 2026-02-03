@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+html, body {
+  overscroll-behavior: none;
+  height: 100%;
+  overflow: hidden; /* Prevent scrolling on body if not needed, as specific containers will scroll */
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 240 10% 3.9%;
