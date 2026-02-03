@@ -29,7 +29,6 @@ export async function POST(req: Request) {
             ],
           },
         ],
-        max_tokens: 1000,
       });
       return response.choices[0].message.content;
     }, "ocr", endpoint);
