@@ -627,7 +627,7 @@ export default function TranslatorApp() {
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm max-h-55 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200",
+                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200",
                                     mode === 'polisher' ? "md:text-sm" : "",
                                     isLoading ? "opacity-70 bg-muted/30" : ""
                                 )}>
