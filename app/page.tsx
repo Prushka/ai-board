@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {motion, AnimatePresence} from "framer-motion";
+import {motion} from "framer-motion";
 import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera} from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -571,7 +571,7 @@ export default function TranslatorApp() {
                             <div className="h-8 flex items-center justify-between gap-2">
                                 {mode === 'translator' ? (
                                     <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                        <SelectTrigger className="h-8 w-fit min-w-[140px] px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2">
+                                        <SelectTrigger className="h-8 w-fit min-w-[140px] px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer">
                                             <span className="text-muted-foreground whitespace-nowrap">To:</span>
                                             <SelectValue />
                                         </SelectTrigger>

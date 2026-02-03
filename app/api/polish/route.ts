@@ -23,7 +23,6 @@ export async function POST(req: Request) {
 
       const completion = await openai.chat.completions.create({
         model: model,
-        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
@@ -39,8 +38,7 @@ export async function POST(req: Request) {
       return completion.choices[0].message.content;
     }, model, endpoint);
 
-    const parsedData = JSON.parse(polishedText || "{}");
-    return NextResponse.json(parsedData);
+    return NextResponse.json({ polishedText });
   } catch (error: any) {
     console.error("Error polishing text:", error);
     return NextResponse.json(
