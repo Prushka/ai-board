@@ -534,7 +534,7 @@ export default function TranslatorApp() {
                                         className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={isExtracting || isLoading}
-                                        title="Upload image to translate"
+                                        title="Upload image"
                                     >
                                         {isExtracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                                     </Button>
@@ -552,7 +552,7 @@ export default function TranslatorApp() {
                                         className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
                                         onClick={() => cameraInputRef.current?.click()}
                                         disabled={isExtracting || isLoading}
-                                        title="Take photo to translate"
+                                        title="Take photo"
                                     >
                                         <Camera className="h-3.5 w-3.5" />
                                     </Button>
