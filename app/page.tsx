@@ -589,19 +589,25 @@ export default function TranslatorApp() {
                                     </Button>
                                 </div>
                             </div>
-                            <Textarea
-                                disabled={isExtracting}
-                                placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
-                                className="min-h-55 md:min-h-90 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                onPaste={handlePaste}
-                                onBlur={() => {
-                                    if (mode === 'translator' && inputText.trim()) {
-                                        handleAction()
-                                    }
-                                }}
-                            />
+                            {isExtracting ? (
+                                <div className="min-h-55 md:min-h-90 w-full rounded-md border border-input bg-muted/20 shadow-sm flex-1 p-3">
+                                    <LoadingAnimation />
+                                </div>
+                            ) : (
+                                <Textarea
+                                    disabled={isExtracting}
+                                    placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
+                                    className="min-h-55 md:min-h-90 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
+                                    value={inputText}
+                                    onChange={(e) => setInputText(e.target.value)}
+                                    onPaste={handlePaste}
+                                    onBlur={() => {
+                                        if (mode === 'translator' && inputText.trim()) {
+                                            handleAction()
+                                        }
+                                    }}
+                                />
+                            )}
                         </div>
 
                         <div className="space-y-2 relative flex flex-col h-full">
