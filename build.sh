@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build the image
-docker build -t meinya/ai-translator:latest .
+docker build -t meinya/ai-board:latest .
 
 # Push to Docker Hub
-docker push meinya/ai-translator:latest
+docker push meinya/ai-board:latest
