@@ -36,34 +36,44 @@ export default function TranslatorApp() {
     const [targetLanguage, setTargetLanguage] = React.useState<string>(LANGUAGES[0])
     const [languageHistory, setLanguageHistory] = React.useState<string[]>([])
 
-    const [inputText, setInputText] = React.useState<string>("")
-    const [translatedText, setTranslatedText] = React.useState<string>("")
-    // We can reuse translatedText for polished text or create a new one.
-    // To avoid confusion let's create a derived or generic 'outputText' state or just reuse 'translatedText' and alias it in render?
-    // Let's create `outputText` and `tokens` and separate the previous `translatedText`.
-    // Actually, refactoring `translatedText` to `outputText` is a bit invasive.
-    // I'll stick to using `translatedText` as the generic output store for simplicity, but cleaner to rename.
-    // Let's keep `translatedText` and added `polishedText`? No, simpler to just use one state for the output content.
-    // I'll rename `translatedText` to `outputText` in a separate refactor or just use it as is.
-    // Given the instructions constraint "Avoid repeating existing code", I will just use `translatedText` for both but creates confusion.
-    // Let's make a new state `outputText` and replace usage gradually? No, that's messy.
-    // I will rename `translatedText` to `outputText` using search/replace first? No, that takes extra steps.
-    // I'll just use `translatedText` for now and maybe rename it in the component. Actually, I'll add `outputText` and sync it.
+    const [contents, setContents] = React.useState<Record<AppMode, {
+        input: string;
+        output: string;
+        tokens: { text: string; pronunciation: string }[];
+    }>>({
+        translator: { input: "", output: "", tokens: [] },
+        polisher: { input: "", output: "", tokens: [] }
+    })
 
-    // Actually, I'll add `handlePolish` and use `translatedText` as the display for both.
+    const inputText = contents[mode].input
+    const translatedText = contents[mode].output
+    const tokens = contents[mode].tokens
 
-    const [tokens, setTokens] = React.useState<{ text: string; pronunciation: string }[]>([])
+    const setInputText = (value: string) => {
+        setContents(prev => ({
+            ...prev,
+            [mode]: { ...prev[mode], input: value }
+        }))
+    }
     const [isLoading, setIsLoading] = React.useState<boolean>(false)
     const [isCopied, setIsCopied] = React.useState<boolean>(false)
 
     // Ref to track last successful translation parameters to prevent redundant requests
     const lastTranslatedParamsRef = React.useRef<{
-        mode: AppMode; // Add mode to cache
-        text: string;
-        targetLanguage?: string;
-        model: string;
-        previousLanguage?: string;
-    } | null>(null)
+        translator: {
+            text: string;
+            targetLanguage: string;
+            model: string;
+            previousLanguage?: string;
+        } | null;
+        polisher: {
+            text: string;
+            model: string;
+        } | null;
+    }>({
+        translator: null,
+        polisher: null
+    })
 
     // Derived state for display
     const previousLanguage = React.useMemo(() =>
@@ -152,7 +162,7 @@ export default function TranslatorApp() {
         })
     }
 
-    const handleTranslate = React.useCallback(async () => {
+    const handleTranslate = React.useCallback(async (force: boolean = false) => {
         if (!inputText.trim() || !selectedModel) return
 
         const currentParams = {
@@ -164,9 +174,8 @@ export default function TranslatorApp() {
         }
 
         // Avoid re-translating if parameters haven't changed since last success
-        const lastParams = lastTranslatedParamsRef.current
-        if (mode === 'translator' && lastParams &&
-            lastParams.mode === 'translator' &&
+        const lastParams = lastTranslatedParamsRef.current.translator
+        if (!force && mode === 'translator' && lastParams &&
             lastParams.text === currentParams.text &&
             lastParams.targetLanguage === currentParams.targetLanguage &&
             lastParams.model === currentParams.model &&
@@ -176,8 +185,10 @@ export default function TranslatorApp() {
         }
 
         setIsLoading(true)
-        setTranslatedText("")
-        setTokens([])
+        setContents(prev => ({
+            ...prev,
+            translator: { ...prev.translator, output: "", tokens: [] }
+        }))
 
         try {
             const res = await fetch("/api/translate", {
@@ -187,23 +198,33 @@ export default function TranslatorApp() {
             })
             const data = await res.json()
             if (data.translatedText) {
-                setTranslatedText(data.translatedText)
-                if (data.tokens && Array.isArray(data.tokens)) {
-                    setTokens(data.tokens)
-                }
+                setContents(prev => ({
+                    ...prev,
+                    translator: {
+                        ...prev.translator,
+                        output: data.translatedText,
+                        tokens: (data.tokens && Array.isArray(data.tokens)) ? data.tokens : []
+                    }
+                }))
                 // Update cache on success
-                lastTranslatedParamsRef.current = currentParams
+                lastTranslatedParamsRef.current.translator = currentParams
             } else if (data.error) {
-                setTranslatedText(`Error: ${data.error}`)
+                setContents(prev => ({
+                    ...prev,
+                    translator: { ...prev.translator, output: `Error: ${data.error}` }
+                }))
             }
         } catch {
-            setTranslatedText("Error: Failed to connect to server.")
+            setContents(prev => ({
+                ...prev,
+                translator: { ...prev.translator, output: "Error: Failed to connect to server." }
+            }))
         } finally {
             setIsLoading(false)
         }
     }, [inputText, targetLanguage, selectedModel, languageHistory, previousLanguage, mode])
 
-    const handlePolish = React.useCallback(async () => {
+    const handlePolish = React.useCallback(async (force: boolean = false) => {
         if (!inputText.trim() || !selectedModel) return
 
         const currentParams = {
@@ -212,9 +233,8 @@ export default function TranslatorApp() {
             model: selectedModel,
         }
 
-        const lastParams = lastTranslatedParamsRef.current
-        if (mode === 'polisher' && lastParams &&
-            lastParams.mode === 'polisher' &&
+        const lastParams = lastTranslatedParamsRef.current.polisher
+        if (!force && mode === 'polisher' && lastParams &&
             lastParams.text === currentParams.text &&
             lastParams.model === currentParams.model
         ) {
@@ -222,8 +242,10 @@ export default function TranslatorApp() {
         }
 
         setIsLoading(true)
-        setTranslatedText("")
-        setTokens([]) // Polisher doesn't use tokens for now
+        setContents(prev => ({
+            ...prev,
+            polisher: { ...prev.polisher, output: "", tokens: [] }
+        }))
 
         try {
             const res = await fetch("/api/polish", {
@@ -233,24 +255,33 @@ export default function TranslatorApp() {
             })
             const data = await res.json()
             if (data.polishedText) {
-                setTranslatedText(data.polishedText)
-                lastTranslatedParamsRef.current = { ...currentParams }
+                setContents(prev => ({
+                    ...prev,
+                    polisher: { ...prev.polisher, output: data.polishedText }
+                }))
+                lastTranslatedParamsRef.current.polisher = { ...currentParams }
             } else if (data.error) {
-                setTranslatedText(`Error: ${data.error}`)
+                setContents(prev => ({
+                    ...prev,
+                    polisher: { ...prev.polisher, output: `Error: ${data.error}` }
+                }))
             }
         } catch {
-            setTranslatedText("Error: Failed to connect to server.")
+            setContents(prev => ({
+                ...prev,
+                polisher: { ...prev.polisher, output: "Error: Failed to connect to server." }
+            }))
         } finally {
             setIsLoading(false)
         }
     }, [inputText, selectedModel, mode])
 
     // Unified handler
-    const handleAction = React.useCallback(() => {
+    const handleAction = React.useCallback((force: boolean = false) => {
         if (mode === 'translator') {
-            handleTranslate()
+            handleTranslate(force)
         } else {
-            handlePolish()
+            handlePolish(force)
         }
     }, [mode, handleTranslate, handlePolish])
 
@@ -361,16 +392,16 @@ export default function TranslatorApp() {
                             </div>
                             <Textarea
                                 placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
-                                className="min-h-[140px] md:min-h-50 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
+                                className="min-h-55 md:min-h-90 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                             />
                         </div>
 
                         <div className="space-y-2 relative flex flex-col h-full">
-                            <div className="h-5 flex items-center">
+                            <div className="min-h-5 flex items-center justify-between gap-2">
                                 <label
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis w-full text-muted-foreground">
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis text-muted-foreground">
                                     {mode === 'translator' ? `Output (${targetLanguage})` : 'Polished Version'}
                                     {mode === 'translator' && previousLanguage && (
                                         <span className="ml-2 text-xs font-normal text-muted-foreground/50">
@@ -378,11 +409,23 @@ export default function TranslatorApp() {
                                         </span>
                                     )}
                                 </label>
+                                {translatedText && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                                        onClick={copyToClipboard}
+                                        title="Copy to clipboard"
+                                    >
+                                        {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
+                                            <Copy className="h-4 w-4"/>}
+                                    </Button>
+                                )}
                             </div>
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-[140px] md:min-h-50 overflow-y-auto flex-1 transition-colors duration-200",
+                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 md:min-h-90 overflow-y-auto flex-1 transition-colors duration-200",
                                     isLoading ? "opacity-70 bg-muted/30" : ""
                                 )}>
                                     {!translatedText && (
@@ -417,25 +460,13 @@ export default function TranslatorApp() {
                                         </motion.span>
                                     )}
                                 </div>
-
-                                {translatedText && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute right-2 top-2 h-8 w-8 bg-background/50 hover:bg-background/80 z-10 cursor-pointer"
-                                        onClick={copyToClipboard}
-                                    >
-                                        {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
-                                            <Copy className="h-4 w-4"/>}
-                                    </Button>
-                                )}
                             </div>
                         </div>
                     </CardContent>
                     <CardFooter className="flex justify-center p-4 md:p-8 pt-2 md:pt-2">
                         <Button
                             className="w-full md:w-auto min-w-[160px] h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
-                            onClick={handleAction}
+                            onClick={() => handleAction(true)}
                             disabled={isLoading || !inputText.trim() || !selectedModel}
                         >
                             {isLoading ? (
