@@ -23,8 +23,10 @@ export const metadata: Metadata = {
     title: "Translator",
   },
   icons: {
-    apple: "/favicon.ico", // Fallback to svg, hopefully iOS 16+ handles it or next-pwa helps
-  }
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -32,7 +34,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#ff4b4b",
+  themeColor: "#151515",
 };
 
 export default function RootLayout({
