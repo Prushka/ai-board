@@ -31,7 +31,7 @@ const LoadingAnimation = () => {
                     transition={{ duration: 0.5, delay: i * 0.1 }}
                 >
                     <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent"
+                        className="absolute inset-0 bg-linear-to-r from-transparent via-primary/20 to-transparent"
                         initial={{ x: "-100%" }}
                         animate={{ x: "100%" }}
                         transition={{
