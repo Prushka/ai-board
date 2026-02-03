@@ -560,6 +560,7 @@ export default function TranslatorApp() {
                                 </div>
                             </div>
                             <Textarea
+                                disabled={isExtracting}
                                 placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
                                 className="min-h-55 md:min-h-90 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
                                 value={inputText}
@@ -670,7 +671,7 @@ export default function TranslatorApp() {
                         <Button
                             className="w-full md:w-auto min-w-40 h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                             onClick={() => handleAction(true)}
-                            disabled={isLoading || !inputText.trim() || !selectedModel}
+                            disabled={isLoading || isExtracting || !inputText.trim() || !selectedModel}
                         >
                             {isLoading ? (
                                 <>
