@@ -467,9 +467,9 @@ export default function TranslatorApp() {
                                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                         />
                                     )}
-                                    {t === 'system' && <Monitor className="w-3.5 h-3.5" />}
-                                    {t === 'light' && <Sun className="w-3.5 h-3.5" />}
-                                    {t === 'dark' && <Moon className="w-3.5 h-3.5" />}
+                                    {t === 'system' && <Monitor className="w-4 h-4" />}
+                                    {t === 'light' && <Sun className="w-4 h-4" />}
+                                    {t === 'dark' && <Moon className="w-4 h-4" />}
                                 </button>
                             ))}
                         </div>
@@ -505,7 +505,7 @@ export default function TranslatorApp() {
                             className="bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                             onClick={() => setIsSettingsOpen(true)}
                         >
-                            <Settings className="w-5 h-5"/>
+                            <Settings className="w-6 h-6"/>
                         </Button>
                     </div>
                 </div>
@@ -532,12 +532,12 @@ export default function TranslatorApp() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={isExtracting || isLoading}
                                         title="Upload image"
                                     >
-                                        {isExtracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                                        {isExtracting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
                                     </Button>
                                     <input
                                         type="file"
@@ -550,12 +550,12 @@ export default function TranslatorApp() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
                                         onClick={() => cameraInputRef.current?.click()}
                                         disabled={isExtracting || isLoading}
                                         title="Take photo"
                                     >
-                                        <Camera className="h-3.5 w-3.5" />
+                                        <Camera className="h-5 w-5" />
                                     </Button>
                                 </div>
                             </div>
@@ -613,15 +613,15 @@ export default function TranslatorApp() {
                                     variant="ghost"
                                     size="icon"
                                     className={cn(
-                                        "h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
+                                        "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
                                         translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
                                     )}
                                     onClick={copyToClipboard}
                                     title="Copy to clipboard"
                                     disabled={!translatedText}
                                 >
-                                    {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
-                                        <Copy className="h-4 w-4"/>}
+                                    {isCopied ? <Check className="h-5 w-5 text-green-500"/> :
+                                        <Copy className="h-5 w-5"/>}
                                 </Button>
                             </div>
                             <div className="relative flex-1 flex flex-col">
@@ -711,9 +711,9 @@ export default function TranslatorApp() {
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
-                                {t === 'system' && <Monitor className="w-3.5 h-3.5" />}
-                                {t === 'light' && <Sun className="w-3.5 h-3.5" />}
-                                {t === 'dark' && <Moon className="w-3.5 h-3.5" />}
+                                {t === 'system' && <Monitor className="w-4 h-4" />}
+                                {t === 'light' && <Sun className="w-4 h-4" />}
+                                {t === 'dark' && <Moon className="w-4 h-4" />}
                             </button>
                         ))}
                     </div>
@@ -724,7 +724,7 @@ export default function TranslatorApp() {
                         className="bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                         onClick={() => setIsSettingsOpen(true)}
                     >
-                        <Settings className="w-5 h-5"/>
+                        <Settings className="w-6 h-6"/>
                     </Button>
                 </div>
             </motion.div>
