@@ -8,7 +8,8 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
-  // @ts-expect-error - Silence Turbopack warning as we use next-pwa (webpack plugin)
+  output: "standalone",
+  // Silence Turbopack warning as we use next-pwa (webpack plugin)
   turbopack: {},
 };
 
