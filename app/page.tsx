@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {motion} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Globe} from "lucide-react";
+import {motion, AnimatePresence} from "framer-motion";
+import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles} from "lucide-react";
 
 import {Button} from "@/components/ui/button";
 import {Textarea} from "@/components/ui/textarea";
@@ -282,65 +282,80 @@ export default function TranslatorApp() {
             >
                 {/* Mode Switch */}
                 <div className="flex justify-center">
-                    <div className="bg-muted p-1 rounded-lg flex gap-1">
-                        <Button
-                            variant={mode === 'translator' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setMode('translator')}
-                            className="rounded-md px-6"
-                        >
-                            Translator
-                        </Button>
-                        <Button
-                            variant={mode === 'polisher' ? 'default' : 'ghost'}
-                            size="sm"
-                            onClick={() => setMode('polisher')}
-                            className="rounded-md px-6"
-                        >
-                            Polisher
-                        </Button>
+                    <div className="bg-muted p-1 rounded-lg flex gap-1 relative">
+                        {(['translator', 'polisher'] as AppMode[]).map((m) => (
+                            <button
+                                key={m}
+                                onClick={() => setMode(m)}
+                                className={cn(
+                                    "relative px-6 py-1.5 text-sm font-medium rounded-md transition-colors z-10 cursor-pointer flex items-center gap-2",
+                                    mode === m ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
+                                )}
+                            >
+                                {mode === m && (
+                                    <motion.div
+                                        layoutId="active-mode"
+                                        className="absolute inset-0 bg-background shadow-sm rounded-md -z-10"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                                {m === 'translator' ? <LanguagesIcon className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
+                                {m.charAt(0).toUpperCase() + m.slice(1)}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
-                <Card className="w-full shadow-md md:shadow-lg border-muted/40">
+                <Card className="w-full shadow-md md:shadow-lg border-muted/40 overflow-hidden">
                     <CardHeader
-                        className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between space-y-0 p-4 md:p-6 pb-2 md:pb-6">
+                        className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between space-y-0 p-4 md:p-6 pb-2 md:pb-6 bg-muted/10">
                         <div className="flex items-center gap-2 w-full md:w-auto">
-                            <Globe className="h-4 w-4 text-muted-foreground hidden md:block"/>
+                            <Globe className="h-4 w-4 text-muted-foreground shrink-0"/>
                             <span className="text-sm font-medium hidden md:inline">Model:</span>
                             <Select value={selectedModel} onValueChange={handleModelChange}>
-                                <SelectTrigger className="w-full md:w-50 h-9 md:h-10 bg-background/50">
+                                <SelectTrigger className="w-full md:w-50 h-9 md:h-10 bg-background/50 cursor-pointer">
                                     <SelectValue placeholder="Select a model"/>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {models.length > 0 ? models.map((model) => (
-                                        <SelectItem key={model.id} value={model.id}>{model.id}</SelectItem>
+                                        <SelectItem key={model.id} value={model.id} className="cursor-pointer">{model.id}</SelectItem>
                                     )) : <SelectItem value="loading" disabled>Loading models...</SelectItem>}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {mode === 'translator' && (
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                                <span className="text-sm font-medium text-nowrap hidden md:inline">Translate to:</span>
-                                <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                    <SelectTrigger className="w-full md:w-45 h-9 md:h-10 bg-background/50">
-                                        <SelectValue/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {LANGUAGES.map(lang => (
-                                            <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <AnimatePresence mode="popLayout">
+                            {mode === 'translator' && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    className="flex items-center gap-2 w-full md:w-auto"
+                                >
+                                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 md:hidden"/>
+                                    <span className="text-sm font-medium text-nowrap hidden md:inline">Translate to:</span>
+                                    <Select value={targetLanguage} onValueChange={handleLanguageChange}>
+                                        <SelectTrigger className="w-full md:w-45 h-9 md:h-10 bg-background/50 cursor-pointer">
+                                            <SelectValue/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {LANGUAGES.map(lang => (
+                                                <SelectItem key={lang} value={lang} className="cursor-pointer">{lang}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </CardHeader>
-                    <CardContent className="grid gap-3 md:gap-6 md:grid-cols-2 p-4 md:p-6 pt-0">
+
+                    <CardContent className="grid gap-3 md:gap-6 md:grid-cols-2 p-4 md:p-6 pt-3 relative">
+                         {/* Animated overlay for loading state if desired, or just opacity on content */}
+
                         <div className="space-y-2 flex flex-col h-full">
-                            <div className="h-5 flex items-center hidden md:flex">
+                            <div className="h-5 flex items-center">
                                 <label
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground">
                                     {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
                                 </label>
                             </div>
@@ -353,12 +368,12 @@ export default function TranslatorApp() {
                         </div>
 
                         <div className="space-y-2 relative flex flex-col h-full">
-                            <div className="h-5 flex items-center hidden md:flex">
+                            <div className="h-5 flex items-center">
                                 <label
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis w-full text-muted-foreground">
                                     {mode === 'translator' ? `Output (${targetLanguage})` : 'Polished Version'}
                                     {mode === 'translator' && previousLanguage && (
-                                        <span className="ml-2 text-xs font-normal text-muted-foreground/70">
+                                        <span className="ml-2 text-xs font-normal text-muted-foreground/50">
                                             (fallback: {previousLanguage})
                                         </span>
                                     )}
@@ -367,7 +382,8 @@ export default function TranslatorApp() {
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-[140px] md:min-h-50 overflow-y-auto flex-1",
+                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-[140px] md:min-h-50 overflow-y-auto flex-1 transition-colors duration-200",
+                                    isLoading ? "opacity-70 bg-muted/30" : ""
                                 )}>
                                     {!translatedText && (
                                         <span className="text-muted-foreground opacity-50">
@@ -377,17 +393,28 @@ export default function TranslatorApp() {
 
                                     {tokens.length > 0 ? (
                                         tokens.map((token, i) => (
-                                            <div key={i} className="flex flex-col items-center justify-end leading-snug">
+                                            <motion.div
+                                                key={i}
+                                                initial={{ opacity: 0, y: 5 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: i * 0.005 }}
+                                                className="flex flex-col items-center justify-end leading-snug"
+                                            >
                                                 {token.pronunciation && (
                                                     <span className="text-[10px] md:text-xs text-muted-foreground/80 select-none mb-0.5 px-0.5">
                                                         {token.pronunciation}
                                                     </span>
                                                 )}
                                                 <span className="text-foreground">{token.text === " " ? "\u00A0" : token.text}</span>
-                                            </div>
+                                            </motion.div>
                                         ))
                                     ) : (
-                                        <span>{translatedText}</span>
+                                        <motion.span
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                        >
+                                            {translatedText}
+                                        </motion.span>
                                     )}
                                 </div>
 
@@ -395,7 +422,7 @@ export default function TranslatorApp() {
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="absolute right-2 top-2 h-8 w-8 bg-background/50 hover:bg-background/80 z-10"
+                                        className="absolute right-2 top-2 h-8 w-8 bg-background/50 hover:bg-background/80 z-10 cursor-pointer"
                                         onClick={copyToClipboard}
                                     >
                                         {isCopied ? <Check className="h-4 w-4 text-green-500"/> :
@@ -407,7 +434,7 @@ export default function TranslatorApp() {
                     </CardContent>
                     <CardFooter className="flex justify-center p-4 md:p-8 pt-2 md:pt-2">
                         <Button
-                            className="w-full md:w-auto min-w-[160px] h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95"
+                            className="w-full md:w-auto min-w-[160px] h-10 md:h-11 font-semibold shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
                             onClick={handleAction}
                             disabled={isLoading || !inputText.trim() || !selectedModel}
                         >
