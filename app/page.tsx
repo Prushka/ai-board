@@ -100,6 +100,10 @@ export default function TranslatorApp() {
                         // Let's replace for now based on previous implementation behavior, or append if user wants to mix?
                         // Previous implementation was `setInputText(data.text)`, so replacing.
                         setInputText(data.text)
+
+                        if (mode === 'translator') {
+                            handleAction(true, data.text)
+                        }
                     } else if (data.error) {
                         console.error("OCR Error:", data.error)
                     }
@@ -289,12 +293,13 @@ export default function TranslatorApp() {
         })
     }
 
-    const handleTranslate = React.useCallback(async (force: boolean = false) => {
-        if (!inputText.trim() || !selectedModel) return
+    const handleTranslate = React.useCallback(async (force: boolean = false, overrideText?: string) => {
+        const textToUse = overrideText !== undefined ? overrideText : inputText
+        if (!textToUse.trim() || !selectedModel) return
 
         const currentParams = {
             mode: 'translator' as AppMode,
-            text: inputText,
+            text: textToUse,
             targetLanguage,
             model: selectedModel,
             previousLanguage,
@@ -408,9 +413,9 @@ export default function TranslatorApp() {
     }, [inputText, selectedModel, mode, selectedEndpoint])
 
     // Unified handler
-    const handleAction = React.useCallback((force: boolean = false) => {
+    const handleAction = React.useCallback((force: boolean = false, overrideText?: string) => {
         if (mode === 'translator') {
-            handleTranslate(force)
+            handleTranslate(force, overrideText)
         } else {
             handlePolish(force)
         }
