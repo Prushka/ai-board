@@ -17,12 +17,19 @@ export async function POST(req: Request) {
         ? `2. Direction: If the detected input language is "${targetLanguage}", translate to "${previousLanguage}". Otherwise, translate to "${targetLanguage}".`
         : `2. Direction: Translate the input text to "${targetLanguage}".`;
 
-      const systemContent = `You are a professional translator.
+      const baseSystemContent = `You are a professional translator.
       Task:
       1. Detect the input language.
       ${directionInstruction}
       3. Quality: Ensure the translation is natural, idiomatic, and conversational.
-      4. Structure: Strictly preserve all original line breaks, paragraph breaks, and blank lines. Do not merge lines or paragraphs.
+      4. Structure: Strictly preserve all original line breaks, paragraph breaks, and blank lines. Do not merge lines or paragraphs.`;
+
+      const isLongText = text.length > 300;
+
+      const systemContent = isLongText
+        ? `${baseSystemContent}
+      5. Output only the translated text.`
+        : `${baseSystemContent}
       5. Provide the output in strictly valid JSON format.
 
       JSON Structure:
@@ -47,7 +54,7 @@ export async function POST(req: Request) {
 
       const completion = await openai.chat.completions.create({
         model: model,
-        response_format: { type: "json_object" },
+        response_format: isLongText ? undefined : { type: "json_object" },
         messages: [
           {
             role: "system",
@@ -62,6 +69,10 @@ export async function POST(req: Request) {
       });
       return completion.choices[0].message.content;
     }, model, endpoint); // Scope is the model name
+
+    if (text.length > 300) {
+      return NextResponse.json({ translatedText: responseData });
+    }
 
     // Parse the JSON string from OpenAI
     const parsedData = JSON.parse(responseData || "{}");
