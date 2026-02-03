@@ -6,7 +6,7 @@ export async function GET() {
     const modelsList = await withOpenAIClient(async (openai) => {
       const response = await openai.models.list();
       return response.data;
-    });
+    }, "list-models");
 
     return NextResponse.json(modelsList);
   } catch (error: any) {

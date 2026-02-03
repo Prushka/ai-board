@@ -12,7 +12,8 @@ if (!globalState._failedApiKeys) {
 }
 
 export async function withOpenAIClient<T>(
-  operation: (client: OpenAI) => Promise<T>
+  operation: (client: OpenAI) => Promise<T>,
+  scope: string = "global"
 ): Promise<T> {
   const allKeys = process.env.OPENAI_API_KEY?.split(",").map((k) => k.trim()).filter(Boolean) || [];
   const baseURL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
@@ -31,10 +32,13 @@ export async function withOpenAIClient<T>(
   }
 
   // Get available keys
-  const availableKeys = allKeys.filter((key) => !globalState._failedApiKeys.has(key));
+  const availableKeys = allKeys.filter((key) => {
+      const blockKey = `${key}::${scope}`;
+      return !globalState._failedApiKeys.has(blockKey)
+  });
 
   if (availableKeys.length === 0) {
-    throw new Error("All API keys are currently blocked or unavailable due to previous errors.");
+    throw new Error(`All API keys are currently blocked for scope '${scope}' or unavailable due to previous errors.`);
   }
 
   let lastError: any;
@@ -49,18 +53,19 @@ export async function withOpenAIClient<T>(
       return await operation(openai);
     } catch (error: any) {
       lastError = error;
-      console.error(`Operation failed with key ending in ...${apiKey.slice(-4)}:`, error.message);
+      console.error(`Operation failed with key ending in ...${apiKey.slice(-4)} for scope '${scope}':`, error.message);
 
       // Determine if error warrants switching keys
       // 401: Unauthorized (Invalid Key)
       // 429: Too Many Requests (Rate Limit or Quota)
       // 403: Forbidden (Access Denied)
       const status = error?.status || error?.response?.status;
-      const shouldSwitch = status == 400 || status === 401 || status === 429 || status === 403;
+      const shouldSwitch = status === 401 || status === 429 || status === 403;
 
       if (shouldSwitch) {
-        console.warn(`Blocking key ending in ...${apiKey.slice(-4)} for 24 hours.`);
-        globalState._failedApiKeys.set(apiKey, Date.now());
+        console.warn(`Blocking key ending in ...${apiKey.slice(-4)} for scope '${scope}' for 24 hours.`);
+        const blockKey = `${apiKey}::${scope}`;
+        globalState._failedApiKeys.set(blockKey, Date.now());
         continue; // Try next key
       } else {
         // For other errors (Use input error 400, Server error 500), do not rotate keys, just fail.

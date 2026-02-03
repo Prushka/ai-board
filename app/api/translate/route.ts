@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { withOpenAIClient } from "@/lib/openai-client";
 
 export async function POST(req: Request) {
-  const { text, targetLanguage, model } = await req.json();
+  const { text, targetLanguage, model, previousLanguage } = await req.json();
 
   if (!text || !targetLanguage || !model) {
     return NextResponse.json(
@@ -12,13 +12,46 @@ export async function POST(req: Request) {
   }
 
   try {
-    const translatedText = await withOpenAIClient(async (openai) => {
+    const responseData = await withOpenAIClient(async (openai) => {
+      const directionInstruction = previousLanguage
+        ? `2. Direction: If the detected input language is "${targetLanguage}", translate to "${previousLanguage}". Otherwise, translate to "${targetLanguage}".`
+        : `2. Direction: Translate the input text to "${targetLanguage}".`;
+
+      const systemContent = `You are a professional translator.
+      Task:
+      1. Detect the input language.
+      ${directionInstruction}
+      3. Quality: Ensure the translation is natural, idiomatic, and conversational.
+      4. Provide the output in strictly valid JSON format.
+
+      JSON Structure:
+      {
+        "translatedText": "The complete translated sentence",
+        "tokens": [
+          { "text": "word_or_char", "pronunciation": "pinyin_or_phonetic" }
+        ]
+      }
+
+      Rules for "tokens":
+      - Split the translated text into meaningful tokens (words for whitespace languages, characters or compound words for CJK).
+      - "pronunciation":
+        - For Chinese: Use Pinyin with tone marks.
+        - For Japanese: Use Romaji or Furigana logic (hiragana reading).
+        - For Korean: Use Revised Romanization.
+        - For Russian: Use Latin transliteration.
+        - For Kazakh: Use Latin transliteration.
+        - For Turkish: Use IPA or simple phonetic transcription.
+        - For others (e.g. English, French, Spanish): Use IPA or standard simple phonetic transcription IF the pronunciation is not obvious from the text. If the target language uses Latin script and pronunciation is standard, you can leave it empty or provide helpful stress guidelines.
+        - If punctuation, leave pronunciation empty.
+      `;
+
       const completion = await openai.chat.completions.create({
         model: model,
+        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: `You are a professional translator. Detect the language of the provided text and translate it into ${targetLanguage}. Output ONLY the translated text, do not include any explanations or surrounding quotes.`,
+            content: systemContent,
           },
           {
             role: "user",
@@ -28,9 +61,12 @@ export async function POST(req: Request) {
         temperature: 0.3,
       });
       return completion.choices[0].message.content;
-    });
+    }, model); // Scope is the model name
 
-    return NextResponse.json({ translatedText });
+    // Parse the JSON string from OpenAI
+    const parsedData = JSON.parse(responseData || "{}");
+
+    return NextResponse.json(parsedData);
   } catch (error: any) {
     console.error("Error translating text:", error);
     return NextResponse.json(
