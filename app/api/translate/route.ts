@@ -39,7 +39,7 @@ export async function POST(req: Request) {
         - For Japanese: ALWAYS use Romaji (Latin script). Do NOT use Hiragana or Katakana.
         - For Korean: Use Revised Romanization.
         - For Russian/Kazakh: Use Latin transliteration.
-        - For others: Use standard simple phonetic transcription (Latin script) if the pronunciation is not obvious.
+        - For others (e.g. English, French, Spanish): Always use IPA or standard simple phonetic transcription.
         - If punctuation or space, leave pronunciation empty.
       `;
 
