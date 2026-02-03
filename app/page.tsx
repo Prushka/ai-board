@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Globe, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -69,7 +69,73 @@ export default function TranslatorApp() {
         }))
     }
     const [isLoading, setIsLoading] = React.useState<boolean>(false)
+    const [isExtracting, setIsExtracting] = React.useState<boolean>(false)
     const [isCopied, setIsCopied] = React.useState<boolean>(false)
+
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
+    const cameraInputRef = React.useRef<HTMLInputElement>(null)
+
+    const processImageFile = async (file: File) => {
+        setIsExtracting(true)
+        try {
+            const reader = new FileReader()
+            reader.onloadend = async () => {
+                const base64 = reader.result as string
+
+                try {
+                    const res = await fetch("/api/ocr", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            image: base64,
+                            endpoint: selectedEndpoint,
+                            model: selectedModel
+                        })
+                    })
+                    const data = await res.json()
+
+                    if (data.text) {
+                        // Append text if there is existing text, or replace?
+                        // User prompt "upload image to translator" usually implies replacing or adding.
+                        // Let's replace for now based on previous implementation behavior, or append if user wants to mix?
+                        // Previous implementation was `setInputText(data.text)`, so replacing.
+                        setInputText(data.text)
+                    } else if (data.error) {
+                        console.error("OCR Error:", data.error)
+                    }
+                } catch (err) {
+                    console.error("OCR Request Failed", err)
+                } finally {
+                    setIsExtracting(false)
+                    if (fileInputRef.current) fileInputRef.current.value = ""
+                }
+            }
+            reader.readAsDataURL(file)
+        } catch (e) {
+            console.error("File reading failed", e)
+            setIsExtracting(false)
+        }
+    }
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        await processImageFile(file)
+    }
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile()
+                if (file) {
+                    e.preventDefault()
+                    await processImageFile(file)
+                    return
+                }
+            }
+        }
+    }
 
     // Ref to track last successful translation parameters to prevent redundant requests
     const lastTranslatedParamsRef = React.useRef<{
@@ -490,17 +556,55 @@ export default function TranslatorApp() {
                          {/* Animated overlay for loading state if desired, or just opacity on content */}
 
                         <div className="space-y-2 flex flex-col h-full">
-                            <div className="h-5 flex items-center">
+                            <div className="h-5 flex items-center justify-between">
                                 <label
                                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground">
                                     {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
                                 </label>
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleFileUpload}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isExtracting || isLoading}
+                                        title="Upload image to translate"
+                                    >
+                                        {isExtracting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                                    </Button>
+                                    <input
+                                        type="file"
+                                        ref={cameraInputRef}
+                                        className="hidden"
+                                        accept="image/*"
+                                        capture="environment"
+                                        onChange={handleFileUpload}
+                                    />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        disabled={isExtracting || isLoading}
+                                        title="Take photo to translate"
+                                    >
+                                        <Camera className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
                             </div>
                             <Textarea
                                 placeholder={mode === 'translator' ? "Type text to translate..." : "Type text to polish..."}
                                 className="min-h-55 md:min-h-90 resize-none text-base bg-background/50 focus:bg-background transition-colors flex-1"
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
+                                onPaste={handlePaste}
                             />
                         </div>
 
