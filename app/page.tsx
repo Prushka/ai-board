@@ -589,7 +589,11 @@ export default function TranslatorApp() {
                                             </SelectContent>
                                         </Select>
                                         {previousLanguage && (
-                                            <div className="flex items-center gap-1 text-xs font-normal text-muted-foreground/50 whitespace-nowrap overflow-hidden text-ellipsis" title={`Fallback: ${previousLanguage}`}>
+                                            <div
+                                                className="flex items-center gap-1 text-xs font-normal text-muted-foreground/50 hover:text-foreground/80 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis transition-colors"
+                                                title={`Switch to fallback: ${previousLanguage}`}
+                                                onClick={() => handleLanguageChange(previousLanguage)}
+                                            >
                                                 <CornerDownRight className="w-3 h-3" />
                                                 <span>{previousLanguage}</span>
                                             </div>
