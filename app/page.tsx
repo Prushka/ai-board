@@ -332,6 +332,7 @@ export default function TranslatorApp() {
     }
 
     const handleTranslate = React.useCallback(async (force: boolean = false, overrideText?: string) => {
+        if (isLoading) return
         const textToUse = overrideText !== undefined ? overrideText : inputText
         if (!textToUse.trim() || !selectedModel) return
 
@@ -396,9 +397,10 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint, isFastMode])
+    }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint, isFastMode, isLoading])
 
     const handlePolish = React.useCallback(async (force: boolean = false) => {
+        if (isLoading) return
         if (!inputText.trim() || !selectedModel) return
 
         const currentParams = {
@@ -452,7 +454,7 @@ export default function TranslatorApp() {
         } finally {
             setIsLoading(false)
         }
-    }, [inputText, selectedModel, mode, selectedEndpoint, isFastMode])
+    }, [inputText, selectedModel, mode, selectedEndpoint, isFastMode, isLoading])
 
     // Unified handler
     const handleAction = React.useCallback((force: boolean = false, overrideText?: string) => {
