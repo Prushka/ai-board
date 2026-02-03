@@ -18,6 +18,36 @@ import {
 import {Card, CardContent, CardFooter} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+const LoadingAnimation = () => {
+    return (
+        <div className="w-full h-full flex flex-col gap-3 p-2 select-none">
+            {[0.9, 0.7, 0.85, 0.6, 0.8, 0.75].map((width, i) => (
+                <motion.div
+                    key={i}
+                    className="h-3 md:h-4 rounded-full bg-muted/20 relative overflow-hidden origin-left"
+                    style={{ width: `${width * 100}%` }}
+                    initial={{ scaleX: 0, opacity: 0 }}
+                    animate={{ scaleX: 1, opacity: 1 }}
+                    transition={{ duration: 0.5, delay: i * 0.1 }}
+                >
+                    <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent"
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.2,
+                            repeatDelay: 0.5
+                        }}
+                    />
+                </motion.div>
+            ))}
+        </div>
+    )
+}
+
 const LANGUAGES = [
     "Chinese (Simplified)", "English", "Russian",
     "Japanese", "Korean",
@@ -628,44 +658,49 @@ export default function TranslatorApp() {
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
                                     "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200",
-                                    mode === 'polisher' ? "md:text-sm" : "",
-                                    isLoading ? "opacity-70 bg-muted/30" : ""
+                                    mode === 'polisher' ? "md:text-sm" : ""
                                 )}>
-                                    {!translatedText && (
-                                        <span className="text-muted-foreground opacity-50">
-                                            {mode === 'translator' ? "Translation will appear here..." : "Polished version will appear here..."}
-                                        </span>
-                                    )}
-
-                                    {tokens.length > 0 ? (
-                                        tokens.map((token, i) => (
-                                            token.text === '\n' ? (
-                                                <div key={i} className="basis-full h-0" />
-                                            ) : (
-                                                <motion.div
-                                                    key={i}
-                                                    initial={{ opacity: 0, y: 5 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: i * 0.005 }}
-                                                    className="flex flex-col items-center justify-end leading-snug"
-                                                >
-                                                    {token.pronunciation && (
-                                                        <span className="text-sm text-muted-foreground/80 select-none mb-0.5 px-0.5">
-                                                            {token.pronunciation}
-                                                        </span>
-                                                    )}
-                                                    <span className="text-foreground">{token.text === " " ? "\u00A0" : token.text}</span>
-                                                </motion.div>
-                                            )
-                                        ))
+                                    {isLoading ? (
+                                        <LoadingAnimation />
                                     ) : (
-                                        <motion.span
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            className="whitespace-pre-wrap w-full"
-                                        >
-                                            {translatedText}
-                                        </motion.span>
+                                        <>
+                                            {!translatedText && (
+                                                <span className="text-muted-foreground opacity-50">
+                                                    {mode === 'translator' ? "Translation will appear here..." : "Polished version will appear here..."}
+                                                </span>
+                                            )}
+
+                                            {tokens.length > 0 ? (
+                                                tokens.map((token, i) => (
+                                                    token.text === '\n' ? (
+                                                        <div key={i} className="basis-full h-0" />
+                                                    ) : (
+                                                        <motion.div
+                                                            key={i}
+                                                            initial={{ opacity: 0, y: 5 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ delay: i * 0.005 }}
+                                                            className="flex flex-col items-center justify-end leading-snug"
+                                                        >
+                                                            {token.pronunciation && (
+                                                                <span className="text-sm text-muted-foreground/80 select-none mb-0.5 px-0.5">
+                                                                    {token.pronunciation}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-foreground">{token.text === " " ? "\u00A0" : token.text}</span>
+                                                        </motion.div>
+                                                    )
+                                                ))
+                                            ) : (
+                                                <motion.span
+                                                    initial={{ opacity: 0 }}
+                                                    animate={{ opacity: 1 }}
+                                                    className="whitespace-pre-wrap w-full"
+                                                >
+                                                    {translatedText}
+                                                </motion.span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
