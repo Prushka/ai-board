@@ -47,7 +47,7 @@ export default function TranslatorApp() {
 
     // Settings state
     const [isSettingsOpen, setIsSettingsOpen] = React.useState(false)
-    const [selectedEndpoint, setSelectedEndpoint] = React.useState<string>("default")
+    const [selectedEndpoint, setSelectedEndpoint] = React.useState<string>("")
 
     const [contents, setContents] = React.useState<Record<AppMode, {
         input: string;
@@ -222,6 +222,8 @@ export default function TranslatorApp() {
 
     React.useEffect(() => {
         // Fetch models when endpoint changes
+        if (!selectedEndpoint) return
+
         const fetchModels = async () => {
             setModels([]) // Clear models while loading
             setSelectedModel("") // Reset selection
@@ -235,30 +237,25 @@ export default function TranslatorApp() {
                     if (Array.isArray(modelList)) {
                         setModels(modelList)
 
-                        // Check local storage for saved model (per endpoint? maybe just global for now)
-                        const savedModel = localStorage.getItem(`selectedModel-${selectedEndpoint}`) || localStorage.getItem("selectedModel")
+                        // Check local storage for saved model (per endpoint)
+                        const savedModel = localStorage.getItem(`selectedModel-${selectedEndpoint}`)
                         const foundSaved = modelList.find((m: { id: string }) => m.id === savedModel)
 
                         if (foundSaved) {
                             setSelectedModel(foundSaved.id)
                         } else {
-                            // Priority: Configured Default -> gpt-4o -> gpt-3.5 -> first available
+                            // Priority: Configured Default -> first available
                             let preferred = null;
                             if (defaultModel) {
                                 preferred = modelList.find((m: { id: string }) => m.id.includes(defaultModel));
                             }
 
                             if (!preferred) {
-                                preferred = modelList.find((m: {
-                                    id: string
-                                }) => m.id.includes("gpt-4o")) || modelList.find((m: {
-                                    id: string
-                                }) => m.id.includes("gpt-3.5")) || modelList[0]
+                                preferred = modelList[0]
                             }
 
                             if (preferred) {
                                 setSelectedModel(preferred.id)
-                                // We don't save immediately to avoid overwriting user pref if they switch back
                             }
                         }
                     }
@@ -272,7 +269,6 @@ export default function TranslatorApp() {
 
     const handleModelChange = (value: string) => {
         setSelectedModel(value)
-        localStorage.setItem("selectedModel", value)
         localStorage.setItem(`selectedModel-${selectedEndpoint}`, value)
     }
 
