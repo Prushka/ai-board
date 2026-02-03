@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -570,17 +570,25 @@ export default function TranslatorApp() {
                         <div className="space-y-2 relative flex flex-col h-full">
                             <div className="h-8 flex items-center justify-between gap-2">
                                 {mode === 'translator' ? (
-                                    <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                        <SelectTrigger className="h-8 w-fit min-w-35 px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer">
-                                            <span className="text-muted-foreground whitespace-nowrap">To:</span>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {LANGUAGES.map(lang => (
-                                                <SelectItem key={lang} value={lang} className="cursor-pointer">{lang}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <Select value={targetLanguage} onValueChange={handleLanguageChange}>
+                                            <SelectTrigger className="h-8 w-fit min-w-35 px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer shrink-0">
+                                                <span className="text-muted-foreground whitespace-nowrap">To:</span>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {LANGUAGES.map(lang => (
+                                                    <SelectItem key={lang} value={lang} className="cursor-pointer">{lang}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        {previousLanguage && (
+                                            <div className="flex items-center gap-1 text-xs font-normal text-muted-foreground/50 whitespace-nowrap overflow-hidden text-ellipsis" title={`Fallback: ${previousLanguage}`}>
+                                                <CornerDownRight className="w-3 h-3" />
+                                                <span>{previousLanguage}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 ) : (
                                     <label
                                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 whitespace-nowrap overflow-hidden text-ellipsis text-muted-foreground">
@@ -636,6 +644,7 @@ export default function TranslatorApp() {
                                         <motion.span
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
+                                            className="whitespace-pre-wrap w-full"
                                         >
                                             {translatedText}
                                         </motion.span>

@@ -18,7 +18,8 @@ export async function POST(req: Request) {
       1. Polish the input text to fix grammar, improve clarity, and ensure natural flow.
       2. Punctuation: Fix any punctuation errors.
       3. Tone: Preserve the original tone (e.g., if it's casual, keep it casual; if formal, keep it formal).
-      4. Output: Return only the polished text.
+      4. Structure: Strictly preserve all original line breaks, paragraph breaks, and blank lines. Do not merge lines or paragraphs.
+      5. Output: Return only the polished text.
       `;
 
       const completion = await openai.chat.completions.create({
