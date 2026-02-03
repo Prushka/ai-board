@@ -577,8 +577,8 @@ export default function TranslatorApp() {
                             <div className="h-8 flex items-center justify-between gap-2">
                                 {mode === 'translator' ? (
                                     <div className="flex items-center gap-2 overflow-hidden">
-                                        <Select value={targetLanguage} onValueChange={handleLanguageChange}>
-                                            <SelectTrigger className="h-8 w-fit min-w-35 px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer shrink-0">
+                                        <Select value={targetLanguage} onValueChange={handleLanguageChange} disabled={isLoading}>
+                                            <SelectTrigger className="h-8 w-fit min-w-35 px-2 bg-muted/20 hover:bg-muted/40 border-transparent focus:ring-0 shadow-none text-sm gap-2 cursor-pointer shrink-0 disabled:opacity-100 disabled:cursor-pointer">
                                                 <span className="text-muted-foreground whitespace-nowrap">To:</span>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -592,7 +592,7 @@ export default function TranslatorApp() {
                                             <div
                                                 className="flex items-center gap-1 text-xs font-normal text-muted-foreground/50 hover:text-foreground/80 cursor-pointer whitespace-nowrap overflow-hidden text-ellipsis transition-colors"
                                                 title={`Switch to fallback: ${previousLanguage}`}
-                                                onClick={() => handleLanguageChange(previousLanguage)}
+                                                onClick={() => !isLoading && handleLanguageChange(previousLanguage)}
                                             >
                                                 <CornerDownRight className="w-3 h-3" />
                                                 <span>{previousLanguage}</span>

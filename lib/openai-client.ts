@@ -56,8 +56,8 @@ export async function withOpenAIClient<T>(
       const openai = new OpenAI({
         apiKey: apiKey,
         baseURL: baseURL,
-            timeout: 30 * 1000,
-            maxRetries: 0,
+            timeout: 180 * 1000,
+            maxRetries: 1,
       });
 
       return await operation(openai);
