@@ -601,7 +601,11 @@ export default function TranslatorApp() {
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
                                     onPaste={handlePaste}
-                                    onBlur={() => {
+                                    onBlur={(e) => {
+                                        // Only target empty areas/background clicks
+                                        // If interacting with other elements (buttons, inputs), skip auto-action
+                                        if (e.relatedTarget) return;
+
                                         if (mode === 'translator' && inputText.trim()) {
                                             handleAction()
                                         }
