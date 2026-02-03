@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Translator",
-  description: "AI-powered Text Translator and Polisher",
+  title: "Translator",
+  description: "Translator",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     title: "Translator",
   },
   icons: {
-    apple: "/globe.svg", // Fallback to svg, hopefully iOS 16+ handles it or next-pwa helps
+    apple: "/favicon.ico", // Fallback to svg, hopefully iOS 16+ handles it or next-pwa helps
   }
 };
 
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#ffffff",
+  themeColor: "#ff4b4b",
 };
 
 export default function RootLayout({

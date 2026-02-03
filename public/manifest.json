@@ -1,16 +1,16 @@
 {
-  "name": "AI Translator",
+  "name": "Translator",
   "short_name": "Translator",
-  "description": "AI-powered Text Translator and Polisher",
+  "description": "Translator",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
   "icons": [
     {
-      "src": "/globe.svg",
+      "src": "/favicon.ico",
       "sizes": "192x192 512x512",
-      "type": "image/svg+xml"
+      "type": "image/x-icon"
     }
   ]
 }
