@@ -22,7 +22,8 @@ export async function POST(req: Request) {
       1. Detect the input language.
       ${directionInstruction}
       3. Quality: Ensure the translation is natural, idiomatic, and conversational.
-      4. Provide the output in strictly valid JSON format.
+      4. Structure: Strictly preserve all original line breaks, paragraph breaks, and blank lines. Do not merge lines or paragraphs.
+      5. Provide the output in strictly valid JSON format.
 
       JSON Structure:
       {
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
 
       Rules for "tokens":
       - Split the translated text into meaningful tokens (words for whitespace languages, characters or compound words for CJK).
+      - Include newline characters (\\n) as separate tokens where they appear in the text.
       - "pronunciation":
         - For Chinese: Use Pinyin with tone marks.
         - For Japanese: ALWAYS use Romaji (Latin script). Do NOT use Hiragana or Katakana.
