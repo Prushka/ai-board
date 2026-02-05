@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste, Volume2} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste, Captions} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -813,10 +813,10 @@ export default function TranslatorApp() {
                                             translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
                                         )}
                                         onClick={handleManualPronounce}
-                                        title="Pronounce"
+                                        title="Show pronunciation"
                                         disabled={!translatedText || isLoading || isPronouncing}
                                     >
-                                        {isPronouncing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                                        {isPronouncing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Captions className="h-5 w-5"/>}
                                     </Button>
                                     <Button
                                         variant="ghost"
