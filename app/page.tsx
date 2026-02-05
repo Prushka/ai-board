@@ -443,6 +443,7 @@ export default function TranslatorApp() {
                         body: JSON.stringify({
                             text: translatedText,
                             language: targetLanguage,
+                            previousLanguage,
                             model: selectedModel,
                             endpoint: selectedEndpoint,
                             isFastMode

@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { withOpenAIClient } from "@/lib/openai-client";
 
 export async function POST(req: Request) {
-  const { text, language, model, endpoint, isFastMode } = await req.json();
+  const { text, language, model, endpoint, isFastMode, previousLanguage } = await req.json();
 
   console.log("Pronounce Request:", {
     text: text?.substring(0, 100) + (text?.length > 100 ? "..." : ""),
     language,
+    previousLanguage,
+    isFastMode,
     model
   });
 
@@ -19,9 +21,14 @@ export async function POST(req: Request) {
 
   try {
     const responseData = await withOpenAIClient(async (openai) => {
+      const languageInstruction = previousLanguage
+        ? `The input text can be in either "${language}" or "${previousLanguage}". Detect the language.`
+        : `The input text is in language "${language}".`;
+
       const systemContent = `You are a linguistic expert.
       Task:
-      Analyze the following text in language "${language}" and provide tokenization and pronunciation.
+      ${languageInstruction}
+      Analyze the text and provide tokenization and pronunciation.
 
       Output:
       Provide the output in strictly valid JSON format.
