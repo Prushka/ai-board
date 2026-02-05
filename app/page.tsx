@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste, Volume2} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -428,8 +428,8 @@ export default function TranslatorApp() {
                 return;
             }
 
-            // Step 2: Request pronunciation tokens (if input < 250 chars)
-            if (textToUse.length < 250 && translatedText) {
+            // Step 2: Request pronunciation tokens (if input < 300 chars)
+            if (textToUse.length < 300 && translatedText) {
                 // Determine if we should show loading for tokens or just let them appear
                 // We'll set isLoading to false so the user can see the text immediately.
                 // The tokens will pop in when ready.
@@ -561,6 +561,47 @@ export default function TranslatorApp() {
             prevTargetLanguage.current = targetLanguage
         }
     }, [targetLanguage, mode, inputText, handleAction])
+
+    const handleManualPronounce = React.useCallback(async () => {
+        if (isLoading || isPronouncing || !translatedText) return;
+
+        setIsPronouncing(true);
+        try {
+            const resTokens = await fetch("/api/pronounce", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    text: translatedText,
+                    language: targetLanguage,
+                    previousLanguage,
+                    model: selectedModel,
+                    endpoint: selectedEndpoint,
+                    isFastMode
+                })
+            });
+            const dataTokens = await resTokens.json();
+
+            if (dataTokens.tokens && Array.isArray(dataTokens.tokens)) {
+                setContents(prev => {
+                    // Only update if the output text hasn't changed in the meantime
+                    if (prev[mode].output === translatedText) {
+                        return {
+                            ...prev,
+                            [mode]: {
+                                ...prev[mode],
+                                tokens: dataTokens.tokens
+                            }
+                        };
+                    }
+                    return prev;
+                });
+            }
+        } catch (e) {
+            console.error("Failed to fetch tokens manually", e);
+        } finally {
+            setIsPronouncing(false);
+        }
+    }, [translatedText, targetLanguage, previousLanguage, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing, mode]);
 
     const copyToClipboard = () => {
         if (!translatedText) return
@@ -763,20 +804,35 @@ export default function TranslatorApp() {
                                         Polished Version
                                     </label>
                                 )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={cn(
-                                        "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
-                                        translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
-                                    )}
-                                    onClick={copyToClipboard}
-                                    title="Copy to clipboard"
-                                    disabled={!translatedText}
-                                >
-                                    {isCopied ? <Check className="h-5 w-5 text-green-500"/> :
-                                        <Copy className="h-5 w-5"/>}
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn(
+                                            "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
+                                            translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
+                                        )}
+                                        onClick={handleManualPronounce}
+                                        title="Pronounce"
+                                        disabled={!translatedText || isLoading || isPronouncing}
+                                    >
+                                        {isPronouncing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Volume2 className="h-5 w-5"/>}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={cn(
+                                            "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
+                                            translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
+                                        )}
+                                        onClick={copyToClipboard}
+                                        title="Copy to clipboard"
+                                        disabled={!translatedText}
+                                    >
+                                        {isCopied ? <Check className="h-5 w-5 text-green-500"/> :
+                                            <Copy className="h-5 w-5"/>}
+                                    </Button>
+                                </div>
                             </div>
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
