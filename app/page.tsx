@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion, AnimatePresence} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste, Captions} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Mic, CornerDownRight, Zap, ClipboardPaste, Captions} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -103,9 +103,10 @@ export default function TranslatorApp() {
     const [isExtracting, setIsExtracting] = React.useState<boolean>(false)
     const [isCopied, setIsCopied] = React.useState<boolean>(false)
     const [isPronouncing, setIsPronouncing] = React.useState<boolean>(false)
+    const [isRecording, setIsRecording] = React.useState<boolean>(false)
 
     const fileInputRef = React.useRef<HTMLInputElement>(null)
-    const cameraInputRef = React.useRef<HTMLInputElement>(null)
+    const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
 
     const processImageFile = async (file: File) => {
         setIsExtracting(true)
@@ -200,6 +201,66 @@ export default function TranslatorApp() {
             }
         } catch (e) {
             console.error("Paste failed", e)
+        }
+    }
+
+    const handleMicClick = async () => {
+        if (isRecording) {
+            mediaRecorderRef.current?.stop();
+            setIsRecording(false);
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mediaRecorder = new MediaRecorder(stream);
+            mediaRecorderRef.current = mediaRecorder;
+            const audioChunks: Blob[] = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(track => track.stop());
+                const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                // Extension logic: if mimeType contains mp4 use mp4, else webm
+                const ext = audioBlob.type.includes('mp4') ? 'mp4' : 'webm';
+                const audioFile = new File([audioBlob], `recording.${ext}`, { type: audioBlob.type });
+
+                setIsExtracting(true);
+                try {
+                    const formData = new FormData();
+                    formData.append("file", audioFile);
+                    formData.append("endpoint", selectedEndpoint);
+                    formData.append("model", selectedModel);
+
+                    const res = await fetch("/api/transcribe", {
+                        method: "POST",
+                        body: formData
+                    });
+                    const data = await res.json();
+
+                    if (data.text) {
+                        setInputText(data.text);
+                        if (mode === 'translator') {
+                            handleAction(true, data.text);
+                        }
+                    } else if (data.error) {
+                        console.error("Transcription Error:", data.error);
+                    }
+                } catch (err) {
+                    console.error("Transcription Request Failed", err);
+                } finally {
+                    setIsExtracting(false);
+                }
+            };
+
+            mediaRecorder.start();
+            setIsRecording(true);
+        } catch (e) {
+            console.error("Audio recording failed", e);
+            alert("Could not access microphone.");
         }
     }
 
@@ -784,23 +845,18 @@ export default function TranslatorApp() {
                                     >
                                         {isExtracting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
                                     </Button>
-                                    <input
-                                        type="file"
-                                        ref={cameraInputRef}
-                                        className="hidden"
-                                        accept="image/*"
-                                        capture="environment"
-                                        onChange={handleFileUpload}
-                                    />
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                                        onClick={() => cameraInputRef.current?.click()}
+                                        className={cn(
+                                            "h-8 w-8 transition-colors cursor-pointer",
+                                            isRecording ? "text-red-500 hover:text-red-600 animate-pulse" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                        onClick={handleMicClick}
                                         disabled={isExtracting || isLoading}
-                                        title="Take photo"
+                                        title={isRecording ? "Stop recording" : "Record audio"}
                                     >
-                                        <Camera className="h-5 w-5" />
+                                        <Mic className={cn("h-5 w-5", isRecording && "fill-current")} />
                                     </Button>
                                 </div>
                             </div>
