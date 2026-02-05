@@ -1,15 +1,21 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check } from "lucide-react";
+import { X, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface Endpoint {
     id: string;
@@ -38,6 +44,7 @@ export function SettingsDialog({
     const [endpoints, setEndpoints] = React.useState<Endpoint[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
+    const [open, setOpen] = React.useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -128,17 +135,55 @@ export function SettingsDialog({
 
                             <div className="space-y-3 pt-2 border-t border-border/50">
                                 <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Model</h3>
-                                <Select value={selectedModel} onValueChange={onModelChange}>
-                                    <SelectTrigger className="w-full bg-background/50 cursor-pointer">
-                                        <SelectValue placeholder="Select a model"/>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {models.length > 0 ? models.map((model) => (
-                                            <SelectItem key={model.id} value={model.id}
-                                                        className="cursor-pointer">{model.id}</SelectItem>
-                                        )) : <SelectItem value="loading" disabled>Loading models...</SelectItem>}
-                                    </SelectContent>
-                                </Select>
+                                <Popover open={open} onOpenChange={setOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={open}
+                                            className="w-full justify-between bg-background/50 cursor-pointer font-normal"
+                                        >
+                                            {selectedModel
+                                                ? models.find((model) => model.id === selectedModel)?.id || selectedModel
+                                                : "Select a model..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                        <Command>
+                                            <CommandInput placeholder="Search model..."/>
+                                            <CommandList>
+                                                <CommandEmpty>No model found.</CommandEmpty>
+                                                <CommandGroup>
+                                                    {models.map((model) => (
+                                                        <CommandItem
+                                                            key={model.id}
+                                                            value={model.id}
+                                                            onSelect={(currentValue) => {
+                                                                onModelChange(model.id === selectedModel ? "" : model.id);
+                                                                setOpen(false);
+                                                            }}
+                                                            className="cursor-pointer"
+                                                        >
+                                                            <Check
+                                                                className={cn(
+                                                                    "mr-2 h-4 w-4",
+                                                                    selectedModel === model.id ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {model.id}
+                                                        </CommandItem>
+                                                    ))}
+                                                    {models.length === 0 && (
+                                                        <div className="p-2 text-sm text-center text-muted-foreground">
+                                                            {isLoading ? "Loading models..." : "No models available"}
+                                                        </div>
+                                                    )}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
                             </div>
                         </div>
 

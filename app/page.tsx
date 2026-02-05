@@ -428,8 +428,8 @@ export default function TranslatorApp() {
                 return;
             }
 
-            // Step 2: Request pronunciation tokens (if input < 300 chars)
-            if (textToUse.length < 300 && translatedText) {
+            // Step 2: Request pronunciation tokens (if input < 200 chars)
+            if (textToUse.length < 200 && translatedText) {
                 // Determine if we should show loading for tokens or just let them appear
                 // We'll set isLoading to false so the user can see the text immediately.
                 // The tokens will pop in when ready.
