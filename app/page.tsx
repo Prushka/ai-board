@@ -603,6 +603,56 @@ export default function TranslatorApp() {
         }
     }, [translatedText, targetLanguage, previousLanguage, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing, mode]);
 
+    const handleInputPronounce = React.useCallback(async () => {
+        if (isLoading || isPronouncing || !inputText.trim()) return;
+
+        // Set output to input text immediately
+        setContents(prev => ({
+            ...prev,
+            [mode]: {
+                ...prev[mode],
+                output: inputText,
+                tokens: []
+            }
+        }));
+
+        setIsPronouncing(true);
+        try {
+            const resTokens = await fetch("/api/pronounce", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    text: inputText,
+                    language: "Auto-detect", // Request auto-detection
+                    model: selectedModel,
+                    endpoint: selectedEndpoint,
+                    isFastMode
+                })
+            });
+            const dataTokens = await resTokens.json();
+
+            if (dataTokens.tokens && Array.isArray(dataTokens.tokens)) {
+                setContents(prev => {
+                    // Only update if the output text matches our input text (user hasn't translated something else in between)
+                    if (prev[mode].output === inputText) {
+                        return {
+                            ...prev,
+                            [mode]: {
+                                ...prev[mode],
+                                tokens: dataTokens.tokens
+                            }
+                        };
+                    }
+                    return prev;
+                });
+            }
+        } catch (e) {
+            console.error("Failed to fetch input tokens", e);
+        } finally {
+            setIsPronouncing(false);
+        }
+    }, [inputText, mode, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing]);
+
     const copyToClipboard = () => {
         if (!translatedText) return
         navigator.clipboard.writeText(translatedText)
@@ -697,6 +747,16 @@ export default function TranslatorApp() {
                                     {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
                                 </label>
                                 <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        onClick={handleInputPronounce}
+                                        disabled={!inputText.trim() || isLoading || isPronouncing}
+                                        title="Show pronunciation for input"
+                                    >
+                                        <Captions className="h-5 w-5" />
+                                    </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
