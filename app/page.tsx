@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {motion} from "framer-motion";
+import {motion, AnimatePresence} from "framer-motion";
 import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste} from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -102,6 +102,7 @@ export default function TranslatorApp() {
     const [isLoading, setIsLoading] = React.useState<boolean>(false)
     const [isExtracting, setIsExtracting] = React.useState<boolean>(false)
     const [isCopied, setIsCopied] = React.useState<boolean>(false)
+    const [isPronouncing, setIsPronouncing] = React.useState<boolean>(false)
 
     const fileInputRef = React.useRef<HTMLInputElement>(null)
     const cameraInputRef = React.useRef<HTMLInputElement>(null)
@@ -390,25 +391,30 @@ export default function TranslatorApp() {
         }
 
         setIsLoading(true)
+        setIsPronouncing(false)
         setContents(prev => ({
             ...prev,
             translator: { ...prev.translator, output: "", tokens: [] }
         }))
 
         try {
+            // Step 1: Request translation ONLY (skip tokens)
             const res = await fetch("/api/translate", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify(currentParams)
+                body: JSON.stringify({ ...currentParams, skipTokens: true })
             })
             const data = await res.json()
+            let translatedText = "";
+
             if (data.translatedText) {
+                translatedText = data.translatedText;
                 setContents(prev => ({
                     ...prev,
                     translator: {
                         ...prev.translator,
-                        output: data.translatedText,
-                        tokens: (data.tokens && Array.isArray(data.tokens)) ? data.tokens : []
+                        output: translatedText,
+                        tokens: []
                     }
                 }))
                 // Update cache on success
@@ -418,13 +424,62 @@ export default function TranslatorApp() {
                     ...prev,
                     translator: { ...prev.translator, output: `Error: ${data.error}` }
                 }))
+                setIsLoading(false)
+                return;
             }
+
+            // Step 2: Request pronunciation tokens (if input < 300 chars)
+            if (textToUse.length < 300 && translatedText) {
+                // Determine if we should show loading for tokens or just let them appear
+                // We'll set isLoading to false so the user can see the text immediately.
+                // The tokens will pop in when ready.
+                setIsLoading(false)
+                setIsPronouncing(true)
+
+                try {
+                    const resTokens = await fetch("/api/pronounce", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            text: translatedText,
+                            language: targetLanguage,
+                            model: selectedModel,
+                            endpoint: selectedEndpoint,
+                            isFastMode
+                        })
+                    })
+                    const dataTokens = await resTokens.json()
+
+                    if (dataTokens.tokens && Array.isArray(dataTokens.tokens)) {
+                         setContents(prev => {
+                             // Only update if the output text hasn't changed in the meantime (race condition check)
+                             if (prev.translator.output === translatedText) {
+                                 return {
+                                     ...prev,
+                                     translator: {
+                                         ...prev.translator,
+                                         tokens: dataTokens.tokens
+                                     }
+                                 }
+                             }
+                             return prev;
+                         })
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch tokens", e);
+                } finally {
+                    setIsPronouncing(false)
+                }
+            } else {
+                setIsLoading(false)
+                setIsPronouncing(false)
+            }
+
         } catch {
             setContents(prev => ({
                 ...prev,
                 translator: { ...prev.translator, output: "Error: Failed to connect to server." }
             }))
-        } finally {
             setIsLoading(false)
         }
     }, [inputText, targetLanguage, selectedModel, previousLanguage, mode, selectedEndpoint, isFastMode, isLoading])
@@ -725,7 +780,7 @@ export default function TranslatorApp() {
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200",
+                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200 relative",
                                     mode === 'polisher' ? "md:text-sm" : ""
                                 )}>
                                     {isLoading ? (
@@ -768,6 +823,23 @@ export default function TranslatorApp() {
                                                     {translatedText}
                                                 </motion.span>
                                             )}
+
+                                            <AnimatePresence>
+                                                {isPronouncing && (
+                                                    <motion.div
+                                                        initial={{opacity: 0, y: 5}}
+                                                        animate={{opacity: 1, y: 0}}
+                                                        exit={{opacity: 0, y: 5}}
+                                                        className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 bg-background/90 backdrop-blur-sm rounded-full shadow-sm border border-border/50 z-20 cursor-default"
+                                                    >
+                                                        <span className="relative flex h-2 w-2">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                                        </span>
+                                                        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Pronouncing</span>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </>
                                     )}
                                 </div>
