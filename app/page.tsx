@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {motion} from "framer-motion";
-import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap} from "lucide-react";
+import {ArrowRight, Copy, Loader2, Check, Languages as LanguagesIcon, Sparkles, Settings, Sun, Moon, Monitor, Upload, Camera, CornerDownRight, Zap, ClipboardPaste} from "lucide-react";
 import { useTheme } from "next-themes";
 
 import {Button} from "@/components/ui/button";
@@ -169,6 +169,36 @@ export default function TranslatorApp() {
                     return
                 }
             }
+        }
+    }
+
+    const handlePasteButton = async () => {
+        try {
+            if (typeof navigator.clipboard.read === 'function') {
+                try {
+                    const items = await navigator.clipboard.read()
+                    for (const item of items) {
+                        if (item.types.some(t => t.startsWith('image/'))) {
+                            const blob = await item.getType(item.types.find(t => t.startsWith('image/'))!)
+                            const file = new File([blob], "pasted-image.png", { type: blob.type })
+                            await processImageFile(file)
+                            return
+                        }
+                    }
+                } catch {
+                    // Ignore, fallback to text
+                }
+            }
+
+            const text = await navigator.clipboard.readText()
+            if (text) {
+                setInputText(text)
+                if (mode === 'translator') {
+                    handleAction(true, text)
+                }
+            }
+        } catch (e) {
+            console.error("Paste failed", e)
         }
     }
 
@@ -570,6 +600,16 @@ export default function TranslatorApp() {
                                     {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
                                 </label>
                                 <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                        onClick={handlePasteButton}
+                                        disabled={isExtracting || isLoading}
+                                        title="Paste from clipboard"
+                                    >
+                                        <ClipboardPaste className="h-5 w-5" />
+                                    </Button>
                                     <input
                                         type="file"
                                         ref={fileInputRef}
