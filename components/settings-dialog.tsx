@@ -87,7 +87,7 @@ export function SettingsDialog({
 
                         <div className="p-4 space-y-4">
                             <div className="space-y-3">
-                                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Endpoint</h3>
+                                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Provider</h3>
                                 {isLoading ? (
                                     <div className="text-sm text-center py-4 text-muted-foreground">Loading endpoints...</div>
                                 ) : error ? (
