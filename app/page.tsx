@@ -72,6 +72,9 @@ export default function TranslatorApp() {
     const [mode, setMode] = React.useState<AppMode>('translator')
     const [models, setModels] = React.useState<{ id: string }[]>([])
     const [selectedModel, setSelectedModel] = React.useState<string>("")
+    const [selectedTranscriptionModel, setSelectedTranscriptionModel] = React.useState<string>("")
+    const [selectedVisualModel, setSelectedVisualModel] = React.useState<string>("")
+
     const [targetLanguage, setTargetLanguage] = React.useState<string>(LANGUAGES[0])
     const [languageHistory, setLanguageHistory] = React.useState<string[]>([])
     const [isFastMode, setIsFastMode] = React.useState(true)
@@ -122,7 +125,7 @@ export default function TranslatorApp() {
                         body: JSON.stringify({
                             image: base64,
                             endpoint: selectedEndpoint,
-                            model: selectedModel
+                            model: selectedVisualModel || selectedModel
                         })
                     })
                     const data = await res.json()
@@ -233,7 +236,7 @@ export default function TranslatorApp() {
                     const formData = new FormData();
                     formData.append("file", audioFile);
                     formData.append("endpoint", selectedEndpoint);
-                    formData.append("model", selectedModel);
+                    formData.append("model", selectedTranscriptionModel || selectedModel);
 
                     const res = await fetch("/api/transcribe", {
                         method: "POST",
@@ -386,6 +389,24 @@ export default function TranslatorApp() {
                                 setSelectedModel(preferred.id)
                             }
                         }
+
+                        // Initialize Transcription and Visual models similarly
+                        const savedTransModel = localStorage.getItem(`selectedTranscriptionModel-${selectedEndpoint}`)
+                        const foundSavedTrans = modelList.find((m: { id: string }) => m.id === savedTransModel)
+                        if (foundSavedTrans) {
+                            setSelectedTranscriptionModel(foundSavedTrans.id)
+                        } else {
+                            // Default to same as selectedModel logic or logic
+                             setSelectedTranscriptionModel(foundSaved ? foundSaved.id : (defaultModel ? modelList.find((m: {id: string}) => m.id.includes(defaultModel))?.id || modelList[0]?.id : modelList[0]?.id))
+                        }
+
+                        const savedVisualModel = localStorage.getItem(`selectedVisualModel-${selectedEndpoint}`)
+                        const foundSavedVisual = modelList.find((m: { id: string }) => m.id === savedVisualModel)
+                        if (foundSavedVisual) {
+                            setSelectedVisualModel(foundSavedVisual.id)
+                        } else {
+                             setSelectedVisualModel(foundSaved ? foundSaved.id : (defaultModel ? modelList.find((m: {id: string}) => m.id.includes(defaultModel))?.id || modelList[0]?.id : modelList[0]?.id))
+                        }
                     }
                 }
             } catch (e) {
@@ -398,6 +419,16 @@ export default function TranslatorApp() {
     const handleModelChange = (value: string) => {
         setSelectedModel(value)
         localStorage.setItem(`selectedModel-${selectedEndpoint}`, value)
+    }
+
+    const handleTranscriptionModelChange = (value: string) => {
+        setSelectedTranscriptionModel(value)
+        localStorage.setItem(`selectedTranscriptionModel-${selectedEndpoint}`, value)
+    }
+
+    const handleVisualModelChange = (value: string) => {
+        setSelectedVisualModel(value)
+        localStorage.setItem(`selectedVisualModel-${selectedEndpoint}`, value)
     }
 
     const toggleFastMode = () => {
@@ -1096,6 +1127,10 @@ export default function TranslatorApp() {
                 models={models}
                 selectedModel={selectedModel}
                 onModelChange={handleModelChange}
+                selectedTranscriptionModel={selectedTranscriptionModel}
+                onTranscriptionModelChange={handleTranscriptionModelChange}
+                selectedVisualModel={selectedVisualModel}
+                onVisualModelChange={handleVisualModelChange}
             />
         </div>
     )

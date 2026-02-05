@@ -4,6 +4,8 @@ import { withOpenAIClient } from "@/lib/openai-client";
 export async function POST(req: Request) {
   const { image, endpoint, model } = await req.json();
 
+  console.log("OCR Request:", { model });
+
   if (!image || !model) {
     return NextResponse.json(
       { error: "Missing image data or model" },

@@ -30,7 +30,84 @@ interface SettingsDialogProps {
     models: { id: string }[];
     selectedModel: string;
     onModelChange: (id: string) => void;
+    selectedTranscriptionModel: string;
+    onTranscriptionModelChange: (id: string) => void;
+    selectedVisualModel: string;
+    onVisualModelChange: (id: string) => void;
 }
+
+const ModelSelector = ({
+    label,
+    value,
+    onChange,
+    models,
+    placeholder,
+    isLoading
+}: {
+    label: string,
+    value: string,
+    onChange: (val: string) => void,
+    models: { id: string }[],
+    placeholder: string,
+    isLoading: boolean
+}) => {
+    const [open, setOpen] = React.useState(false);
+
+    return (
+        <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</h3>
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-full justify-between bg-background/50 cursor-pointer font-normal"
+                    >
+                        {value
+                            ? models.find((model) => model.id === value)?.id || value
+                            : placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                    <Command>
+                        <CommandInput placeholder="Search model..."/>
+                        <CommandList>
+                            <CommandEmpty>No model found.</CommandEmpty>
+                            <CommandGroup>
+                                {models.map((model) => (
+                                    <CommandItem
+                                        key={model.id}
+                                        value={model.id}
+                                        onSelect={() => {
+                                            onChange(model.id);
+                                            setOpen(false);
+                                        }}
+                                        className="cursor-pointer"
+                                    >
+                                        <Check
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                value === model.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        {model.id}
+                                    </CommandItem>
+                                ))}
+                                {models.length === 0 && (
+                                    <div className="p-2 text-sm text-center text-muted-foreground">
+                                        {isLoading ? "Loading models..." : "No models available"}
+                                    </div>
+                                )}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+        </div>
+    );
+};
 
 export function SettingsDialog({
    isOpen,
@@ -39,12 +116,15 @@ export function SettingsDialog({
    onEndpointChange,
    models,
    selectedModel,
-   onModelChange
+   onModelChange,
+   selectedTranscriptionModel,
+   onTranscriptionModelChange,
+   selectedVisualModel,
+   onVisualModelChange
 }: SettingsDialogProps) {
     const [endpoints, setEndpoints] = React.useState<Endpoint[]>([]);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
-    const [open, setOpen] = React.useState(false);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -134,56 +214,30 @@ export function SettingsDialog({
                             </div>
 
                             <div className="space-y-3 pt-2 border-t border-border/50">
-                                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">AI Model</h3>
-                                <Popover open={open} onOpenChange={setOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={open}
-                                            className="w-full justify-between bg-background/50 cursor-pointer font-normal"
-                                        >
-                                            {selectedModel
-                                                ? models.find((model) => model.id === selectedModel)?.id || selectedModel
-                                                : "Select a model..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50"/>
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                                        <Command>
-                                            <CommandInput placeholder="Search model..."/>
-                                            <CommandList>
-                                                <CommandEmpty>No model found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {models.map((model) => (
-                                                        <CommandItem
-                                                            key={model.id}
-                                                            value={model.id}
-                                                            onSelect={(currentValue) => {
-                                                                onModelChange(model.id === selectedModel ? "" : model.id);
-                                                                setOpen(false);
-                                                            }}
-                                                            className="cursor-pointer"
-                                                        >
-                                                            <Check
-                                                                className={cn(
-                                                                    "mr-2 h-4 w-4",
-                                                                    selectedModel === model.id ? "opacity-100" : "opacity-0"
-                                                                )}
-                                                            />
-                                                            {model.id}
-                                                        </CommandItem>
-                                                    ))}
-                                                    {models.length === 0 && (
-                                                        <div className="p-2 text-sm text-center text-muted-foreground">
-                                                            {isLoading ? "Loading models..." : "No models available"}
-                                                        </div>
-                                                    )}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                <ModelSelector
+                                    label="Translator Model"
+                                    value={selectedModel}
+                                    onChange={onModelChange}
+                                    models={models}
+                                    placeholder="Select a translator model..."
+                                    isLoading={isLoading}
+                                />
+                                <ModelSelector
+                                    label="Transcription Model"
+                                    value={selectedTranscriptionModel}
+                                    onChange={onTranscriptionModelChange}
+                                    models={models}
+                                    placeholder="Select a transcription model..."
+                                    isLoading={isLoading}
+                                />
+                                <ModelSelector
+                                    label="Visual Model"
+                                    value={selectedVisualModel}
+                                    onChange={onVisualModelChange}
+                                    models={models}
+                                    placeholder="Select a visual model..."
+                                    isLoading={isLoading}
+                                />
                             </div>
                         </div>
 

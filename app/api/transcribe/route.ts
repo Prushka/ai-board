@@ -12,6 +12,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
+    console.log("Transcribe Request:", { model });
+
     // Convert file to base64
     const buffer = Buffer.from(await file.arrayBuffer());
     const base64Audio = buffer.toString("base64");
