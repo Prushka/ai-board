@@ -274,10 +274,16 @@ export default function TranslatorApp() {
             targetLanguage: string;
             model: string;
             previousLanguage?: string;
+            endpoint?: string;
+            isFastMode?: boolean;
+            cachedTokens?: { text: string; pronunciation: string }[];
         } | null;
         polisher: {
             text: string;
             model: string;
+            endpoint?: string;
+            isFastMode?: boolean;
+            cachedTokens?: { text: string; pronunciation: string }[];
         } | null;
     }>({
         translator: null,
@@ -476,8 +482,8 @@ export default function TranslatorApp() {
             lastParams.targetLanguage === currentParams.targetLanguage &&
             lastParams.model === currentParams.model &&
             lastParams.previousLanguage === currentParams.previousLanguage &&
-            (lastParams as { endpoint?: string }).endpoint === currentParams.endpoint &&
-            (lastParams as { isFastMode?: boolean }).isFastMode === currentParams.isFastMode
+            lastParams.endpoint === currentParams.endpoint &&
+            lastParams.isFastMode === currentParams.isFastMode
         ) {
             return
         }
@@ -549,6 +555,10 @@ export default function TranslatorApp() {
                          setContents(prev => {
                              // Only update if the output text hasn't changed in the meantime (race condition check)
                              if (prev.translator.output === translatedText) {
+                                 // Cache the tokens
+                                 if (lastTranslatedParamsRef.current.translator) {
+                                     lastTranslatedParamsRef.current.translator.cachedTokens = dataTokens.tokens;
+                                 }
                                  return {
                                      ...prev,
                                      translator: {
@@ -671,6 +681,27 @@ export default function TranslatorApp() {
             return;
         }
 
+        // Check if we have cached tokens for the current output state
+        if (lastTranslatedParamsRef.current[mode] &&
+            lastTranslatedParamsRef.current[mode]?.cachedTokens &&
+            lastTranslatedParamsRef.current[mode]?.cachedTokens.length > 0) {
+             // We need to be careful: lastTranslatedParamsRef stores INPUT params.
+             // But if specific input params lead to specific output, and the current output matches, it's safer.
+             // Since we don't store output in ref, we assume if we are here, and user hasn't
+             // changed anything that would clear the output, the cache is valid for the current session.
+             // Actually, if input text changed but output didn't update (user just typing), the ref might not match input text.
+             // But the tokens are tied to the *last successful translation*.
+             // So if contents[mode].output is present, it *is* the result of the last successful translation.
+             setContents(prev => ({
+                 ...prev,
+                 [mode]: {
+                     ...prev[mode],
+                     tokens: lastTranslatedParamsRef.current[mode]!.cachedTokens!
+                 }
+             }));
+             return;
+        }
+
         setIsPronouncing(true);
         try {
             const resTokens = await fetch("/api/pronounce", {
@@ -691,6 +722,10 @@ export default function TranslatorApp() {
                 setContents(prev => {
                     // Only update if the output text hasn't changed in the meantime
                     if (prev[mode].output === translatedText) {
+                         // Cache result
+                         if (lastTranslatedParamsRef.current[mode]) {
+                             lastTranslatedParamsRef.current[mode]!.cachedTokens = dataTokens.tokens;
+                         }
                         return {
                             ...prev,
                             [mode]: {
