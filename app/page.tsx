@@ -521,7 +521,9 @@ export default function TranslatorApp() {
             }
 
             // Step 2: Request pronunciation tokens (if input < 300 chars)
-            if (textToUse.length < 300 && translatedText) {
+            // Default only for Chinese
+            const isChinese = targetLanguage.includes("Chinese");
+            if (textToUse.length < 300 && translatedText && isChinese) {
                 // Determine if we should show loading for tokens or just let them appear
                 // We'll set isLoading to false so the user can see the text immediately.
                 // The tokens will pop in when ready.
@@ -657,6 +659,18 @@ export default function TranslatorApp() {
     const handleManualPronounce = React.useCallback(async () => {
         if (isLoading || isPronouncing || !translatedText) return;
 
+        // Toggle off if already showing tokens
+        if (tokens.length > 0) {
+            setContents(prev => ({
+                ...prev,
+                [mode]: {
+                    ...prev[mode],
+                    tokens: []
+                }
+            }));
+            return;
+        }
+
         setIsPronouncing(true);
         try {
             const resTokens = await fetch("/api/pronounce", {
@@ -693,7 +707,7 @@ export default function TranslatorApp() {
         } finally {
             setIsPronouncing(false);
         }
-    }, [translatedText, targetLanguage, previousLanguage, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing, mode]);
+    }, [translatedText, targetLanguage, previousLanguage, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing, mode, tokens]);
 
     const handleInputPronounce = React.useCallback(async () => {
         if (isLoading || isPronouncing || !inputText.trim()) return;
@@ -834,62 +848,64 @@ export default function TranslatorApp() {
 
                         <div className="space-y-2 flex flex-col h-full">
                             <div className="h-8 flex items-center justify-between">
-                                <label
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground">
-                                    {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
-                                </label>
-                                <div className="flex items-center gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                                        onClick={handleInputPronounce}
-                                        disabled={!inputText.trim() || isLoading || isPronouncing}
-                                        title="Show pronunciation for input"
-                                    >
-                                        <Captions className="h-5 w-5" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                                        onClick={handlePasteButton}
-                                        disabled={isExtracting || isLoading}
-                                        title="Paste from clipboard"
-                                    >
-                                        <ClipboardPaste className="h-5 w-5" />
-                                    </Button>
-                                    <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleFileUpload}
-                                    />
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={isExtracting || isLoading}
-                                        title="Upload image"
-                                    >
-                                        {isExtracting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={cn(
-                                            "h-8 w-8 transition-colors cursor-pointer",
-                                            isRecording ? "text-red-500 hover:text-red-600 animate-pulse" : "text-muted-foreground hover:text-foreground"
-                                        )}
-                                        onClick={handleMicClick}
-                                        disabled={isExtracting || isLoading}
-                                        title={isRecording ? "Stop recording" : "Record audio"}
-                                    >
-                                        <Mic className={cn("h-5 w-5", isRecording && "fill-current")} />
-                                    </Button>
+                                <div className="flex items-center gap-4">
+                                    <label
+                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-muted-foreground">
+                                        {mode === 'translator' ? 'Input (Auto-detect)' : 'Input (Draft)'}
+                                    </label>
+                                    <div className="flex flex-row-reverse items-center gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                            onClick={handlePasteButton}
+                                            disabled={isExtracting || isLoading}
+                                            title="Paste from clipboard"
+                                        >
+                                            <ClipboardPaste className="h-5 w-5" />
+                                        </Button>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleFileUpload}
+                                        />
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            disabled={isExtracting || isLoading}
+                                            title="Upload image"
+                                        >
+                                            {isExtracting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className={cn(
+                                                "h-8 w-8 transition-colors cursor-pointer",
+                                                isRecording ? "text-red-500 hover:text-red-600 animate-pulse" : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                            onClick={handleMicClick}
+                                            disabled={isExtracting || isLoading}
+                                            title={isRecording ? "Stop recording" : "Record audio"}
+                                        >
+                                            <Mic className={cn("h-5 w-5", isRecording && "fill-current")} />
+                                        </Button>
+                                    </div>
                                 </div>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                    onClick={handleInputPronounce}
+                                    disabled={!inputText.trim() || isLoading || isPronouncing}
+                                    title="Show pronunciation for input"
+                                >
+                                    <Captions className="h-5 w-5" />
+                                </Button>
                             </div>
                             {isExtracting ? (
                                 <div className="min-h-55 md:min-h-90 w-full rounded-md border border-input bg-muted/20 shadow-sm flex-1 p-3">
@@ -957,13 +973,14 @@ export default function TranslatorApp() {
                                         size="icon"
                                         className={cn(
                                             "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer shrink-0 transition-opacity duration-200",
-                                            translatedText ? "opacity-100" : "opacity-0 pointer-events-none"
+                                            translatedText ? "opacity-100" : "opacity-0 pointer-events-none",
+                                            tokens.length > 0 && "text-foreground"
                                         )}
                                         onClick={handleManualPronounce}
-                                        title="Show pronunciation"
+                                        title={tokens.length > 0 ? "Hide pronunciation" : "Show pronunciation"}
                                         disabled={!translatedText || isLoading || isPronouncing}
                                     >
-                                        {isPronouncing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Captions className="h-5 w-5"/>}
+                                        {isPronouncing ? <Loader2 className="h-4 w-4 animate-spin"/> : <Captions className={cn("h-5 w-5", tokens.length > 0 && "fill-current")}/>}
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -984,13 +1001,14 @@ export default function TranslatorApp() {
                             <div className="relative flex-1 flex flex-col">
                                 {/* Using a div to simulate Textarea appearance but support formatting */}
                                 <div className={cn(
-                                    "flex flex-wrap content-start gap-1 px-3 py-2 w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 overflow-y-auto flex-1 transition-colors duration-200 relative",
+                                    "w-full rounded-md border border-input bg-muted/20 text-base shadow-sm min-h-55 max-h-55 md:min-h-90 md:max-h-90 flex-1 transition-colors duration-200 relative overflow-hidden",
                                     mode === 'polisher' ? "md:text-sm" : ""
                                 )}>
-                                    {isLoading ? (
-                                        <LoadingAnimation />
-                                    ) : (
-                                        <>
+                                    <div className="w-full h-full overflow-y-auto flex flex-wrap content-start gap-1 px-3 py-2">
+                                        {isLoading ? (
+                                            <LoadingAnimation />
+                                        ) : (
+                                            <>
                                             {!translatedText && (
                                                 <span className="text-muted-foreground opacity-50">
                                                     {mode === 'translator' ? "Translation will appear here..." : "Polished version will appear here..."}
@@ -1028,24 +1046,25 @@ export default function TranslatorApp() {
                                                 </motion.span>
                                             )}
 
-                                            <AnimatePresence>
-                                                {isPronouncing && (
-                                                    <motion.div
-                                                        initial={{opacity: 0, y: 5}}
-                                                        animate={{opacity: 1, y: 0}}
-                                                        exit={{opacity: 0, y: 5}}
-                                                        className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 bg-background/90 backdrop-blur-sm rounded-full shadow-sm border border-border/50 z-20 cursor-default"
-                                                    >
-                                                        <span className="relative flex h-2 w-2">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                                                        </span>
-                                                        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Pronouncing</span>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </>
-                                    )}
+                                            </>
+                                        )}
+                                    </div>
+                                    <AnimatePresence>
+                                        {isPronouncing && (
+                                            <motion.div
+                                                initial={{opacity: 0, y: 5}}
+                                                animate={{opacity: 1, y: 0}}
+                                                exit={{opacity: 0, y: 5}}
+                                                className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1 bg-background/90 backdrop-blur-sm rounded-full shadow-sm border border-border/50 z-20 cursor-default"
+                                            >
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                                                </span>
+                                                <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Pronouncing</span>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                         </div>
