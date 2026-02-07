@@ -290,6 +290,12 @@ export default function TranslatorApp() {
         polisher: null
     })
 
+    // Ref to cache input pronunciation results
+    const lastInputPronunciationRef = React.useRef<{
+        text: string;
+        tokens: { text: string; pronunciation: string }[];
+    } | null>(null);
+
     // Derived state for display
     const previousLanguage = React.useMemo(() =>
         languageHistory.find(l => l !== targetLanguage),
@@ -688,7 +694,7 @@ export default function TranslatorApp() {
              // We need to be careful: lastTranslatedParamsRef stores INPUT params.
              // But if specific input params lead to specific output, and the current output matches, it's safer.
              // Since we don't store output in ref, we assume if we are here, and user hasn't
-             // changed anything that would clear the output, the cache is valid for the current session.
+             // changed anything that would clear the output, the ref is valid for the current session.
              // Actually, if input text changed but output didn't update (user just typing), the ref might not match input text.
              // But the tokens are tied to the *last successful translation*.
              // So if contents[mode].output is present, it *is* the result of the last successful translation.
@@ -747,7 +753,36 @@ export default function TranslatorApp() {
     const handleInputPronounce = React.useCallback(async () => {
         if (isLoading || isPronouncing || !inputText.trim()) return;
 
-        // Set output to input text immediately
+        // Check if we are currently showing Input Pronunciation
+        const isShowingInputTokens = contents[mode].output === inputText && contents[mode].tokens.length > 0;
+
+        if (isShowingInputTokens) {
+            // Toggle Off: Clear tokens.
+            setContents(prev => ({
+                ...prev,
+                [mode]: {
+                    ...prev[mode],
+                    tokens: []
+                }
+            }));
+            return;
+        }
+
+        // Check Cache for input pronunciation
+        if (lastInputPronunciationRef.current && lastInputPronunciationRef.current.text === inputText) {
+             setContents(prev => ({
+                ...prev,
+                [mode]: {
+                    ...prev[mode],
+                    output: inputText,
+                    tokens: lastInputPronunciationRef.current!.tokens
+                }
+            }));
+            return;
+        }
+
+        setIsPronouncing(true);
+        // Set output to input text immediately (clearing tokens initially if any)
         setContents(prev => ({
             ...prev,
             [mode]: {
@@ -757,7 +792,6 @@ export default function TranslatorApp() {
             }
         }));
 
-        setIsPronouncing(true);
         try {
             const resTokens = await fetch("/api/pronounce", {
                 method: "POST",
@@ -773,6 +807,12 @@ export default function TranslatorApp() {
             const dataTokens = await resTokens.json();
 
             if (dataTokens.tokens && Array.isArray(dataTokens.tokens)) {
+                // Update Cache
+                lastInputPronunciationRef.current = {
+                    text: inputText,
+                    tokens: dataTokens.tokens
+                };
+
                 setContents(prev => {
                     // Only update if the output text matches our input text (user hasn't translated something else in between)
                     if (prev[mode].output === inputText) {
@@ -792,7 +832,7 @@ export default function TranslatorApp() {
         } finally {
             setIsPronouncing(false);
         }
-    }, [inputText, mode, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing]);
+    }, [inputText, mode, selectedModel, selectedEndpoint, isFastMode, isLoading, isPronouncing, contents]);
 
     const copyToClipboard = () => {
         if (!translatedText) return
@@ -934,12 +974,15 @@ export default function TranslatorApp() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer"
+                                    className={cn(
+                                        "h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer",
+                                        translatedText === inputText && tokens.length > 0 && "text-foreground"
+                                    )}
                                     onClick={handleInputPronounce}
                                     disabled={!inputText.trim() || isLoading || isPronouncing}
-                                    title="Show pronunciation for input"
+                                    title={translatedText === inputText && tokens.length > 0 ? "Hide pronunciation" : "Show pronunciation for input"}
                                 >
-                                    <Captions className="h-5 w-5" />
+                                    <Captions className={cn("h-5 w-5", translatedText === inputText && tokens.length > 0 && "fill-current")} />
                                 </Button>
                             </div>
                             {isExtracting ? (
